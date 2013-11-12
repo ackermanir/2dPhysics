@@ -8,7 +8,7 @@
 
 #include <vector>
 
-#define HOOKE_CONSTANT 20.0f
+#define HOOKE_CONSTANT 10.0f
 
 class Collision;
 

@@ -20,6 +20,7 @@
 #include <cmath>
 #include <time.h>
 #include <math.h>
+#include <cstdlib> //for srand
 
 using namespace std;
 
@@ -37,7 +38,7 @@ int main(int argc, char *argv[]) {
 	//collection of triangles in scene
 	std::vector<Triangle *> tris = std::vector<Triangle *>();
 	//Location of camera in the scene
-	glm::vec3 camLoc(0.0f, 0.0f, 10.0f);;
+	glm::vec3 camLoc(0.0f, 0.0f, 50.0f);
     //Camera view matrix
     glm::mat4 view = glm::lookAt(camLoc, glm::vec3(0,0,0), glm::vec3(0,1,0));
 
@@ -91,21 +92,33 @@ int main(int argc, char *argv[]) {
 	// Load in objects to world
 	//****************************************************
 
-    //For now just generating some test triangles
+    srand(6);
 
-    Triangle t = Triangle(glm::vec2(.00f, .4), glm::vec2(.4f, 2.0f), glm::vec2(1.0f, 0.0f));
-    t.invMass = 1.0f;
-    t.rotationalVelocity = 00.0f;
-    tris.push_back(&t);
+    glm::vec2 upLeft(-50.0f, 50.0f);
+    glm::vec2 downRight(50.0f, -50.0f);
 
-    Triangle t2 = Triangle(glm::vec2(-1.0f, -2), glm::vec2(0, .2f), glm::vec2(1.0f, -2));
+    int divs = 10;
+    for (int i = 0; i < divs; i++) {
+        float port = (downRight[0] - upLeft[0]) / divs;
+        for (int j = 0; j < divs; j++) {
+            float centerX = upLeft[0] + port * i + (float)rand() / RAND_MAX;
+            float centerY = downRight[1] + port * j + (float)rand() / RAND_MAX;
+            glm::vec2 center(centerX, centerY);
+            float fifth = port / 5.0f;
+            float eigth = port / 8.0f;
+            Triangle *t = new Triangle(glm::vec2(-fifth, -eigth) + center,
+                                       glm::vec2(0.f, eigth) + center,
+                                       glm::vec2(fifth, -eigth) + center);
+            t->invMass = 1.0f;
+            tris.push_back(t);
+        }
+    }
+
+    //Base triangle
+    Triangle base = Triangle(glm::vec2(-60.0f, -60.0f), glm::vec2(60.0f, -60.0f), glm::vec2(0.0f, -120.0f));
     // Inverse mass of 0 means infinite mass a.k.a. static object
-    t2.invMass = 0.0f;
-    tris.push_back(&t2);
-
-    Triangle t3 = Triangle(glm::vec2(1.05f, -2), glm::vec2(2.0f, 0.0f), glm::vec2(2.0f, -2));
-    t3.invMass = 0.0f;
-    tris.push_back(&t3);
+    base.invMass = 0.0f;
+    tris.push_back(&base);
 
 	//****************************************************
 	// Setup uniforms
@@ -141,9 +154,10 @@ int main(int argc, char *argv[]) {
 
 		//Simulation/collision
         // Divide step up further to allow better simulation
-        int totalSubSteps = 10;
+        int totalSubSteps = 1;
         for (int substep = 0; substep < totalSubSteps; substep++) {
             float stepTime = deltaTime / totalSubSteps;
+            stepTime = 0.01f;
 
             //Simulate triangles falling under gravity and rotating
             for (unsigned int i = 0; i < tris.size(); i++) {
