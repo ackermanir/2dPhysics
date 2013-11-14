@@ -29,6 +29,7 @@ using namespace std;
 #include "interaction.hpp"
 
 #include "triangle.hpp"
+#include "grid.hpp"
 
 //****************************************************
 // Main loop
@@ -95,20 +96,17 @@ int main(int argc, char *argv[]) {
     srand(6);
 
     glm::vec2 upLeft(-50.0f, 50.0f);
-    glm::vec2 downRight(50.0f, -50.0f);
+    glm::vec2 downRight(50.0f, -50.0f);;
 
     int divs = 10;
+    float width = (downRight[0] - upLeft[0]) / divs / 2.0f;
     for (int i = 0; i < divs; i++) {
         float port = (downRight[0] - upLeft[0]) / divs;
         for (int j = 0; j < divs; j++) {
             float centerX = upLeft[0] + port * i + (float)rand() / RAND_MAX;
             float centerY = downRight[1] + port * j + (float)rand() / RAND_MAX;
             glm::vec2 center(centerX, centerY);
-            float fifth = port / 5.0f;
-            float eigth = port / 8.0f;
-            Triangle *t = new Triangle(glm::vec2(-fifth, -eigth) + center,
-                                       glm::vec2(0.f, eigth) + center,
-                                       glm::vec2(fifth, -eigth) + center);
+            Triangle *t = new Triangle(center, width);
             t->invMass = 1.0f;
             tris.push_back(t);
         }
@@ -118,7 +116,10 @@ int main(int argc, char *argv[]) {
     Triangle base = Triangle(glm::vec2(-60.0f, -60.0f), glm::vec2(60.0f, -60.0f), glm::vec2(0.0f, -120.0f));
     // Inverse mass of 0 means infinite mass a.k.a. static object
     base.invMass = 0.0f;
-    tris.push_back(&base);
+	std::vector<Triangle *> statics = std::vector<Triangle *>();
+    statics.push_back(&base);
+
+    Grid gr(tris, statics, width);
 
 	//****************************************************
 	// Setup uniforms
@@ -153,30 +154,8 @@ int main(int argc, char *argv[]) {
 		double begEngine = glfwGetTime();
 
 		//Simulation/collision
-        // Divide step up further to allow better simulation
-        int totalSubSteps = 1;
-        for (int substep = 0; substep < totalSubSteps; substep++) {
-            float stepTime = deltaTime / totalSubSteps;
-            stepTime = 0.01f;
-
-            //Simulate triangles falling under gravity and rotating
-            for (unsigned int i = 0; i < tris.size(); i++) {
-                tris[i]->timeStep(stepTime);
-            }
-
-            // test collisions between all triangles
-            // For now is an n^2 algorithm
-            for (unsigned int i = 0; i < tris.size(); i++) {
-                Triangle * tr1 = tris.at(i);
-                for (unsigned int j = 0; j < i; j++) {
-                    Triangle * tr2 = tris.at(j);
-                    Collision * col = tr1->testColliding(tr2);
-                    Triangle::handleCollisions(col);
-                    // Here we cleanup collision as it was generated on heap
-                    delete col;
-                }
-            }
-        }
+        float stepTime = 0.01f;
+        gr.rebalance(stepTime);
 
 		// Change fov, allowing user to move
         // Use - or 0 keys
@@ -200,6 +179,10 @@ int main(int argc, char *argv[]) {
         //Go over each Triangle and have them draw themselves
 		for (unsigned int i = 0; i < tris.size(); i++) {
 			tris[i]->drawSelf();
+		}
+
+		for (unsigned int i = 0; i < statics.size(); i++) {
+			statics[i]->drawSelf();
 		}
 
 		// Swap buffers

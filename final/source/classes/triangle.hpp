@@ -23,7 +23,11 @@ public:
 	//OpenGl info
 	GLuint vertexBuf;
 
+    //Create triangle with these 3 points
     Triangle(glm::vec2 &v0, glm::vec2 &v1, glm::vec2 &v2);
+    //Equilateral triangle construct
+    Triangle(glm::vec2 &center, float width);
+    void init(glm::vec2 &v0, glm::vec2 &v1, glm::vec2 &v2);
     //Static functions for collisions between triangles
     static Collision * ptsColliding(Triangle *outerT, Triangle *innerT);
     static void handleCollisions(Collision * col);

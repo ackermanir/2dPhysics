@@ -21,6 +21,9 @@
     <ClCompile Include="source\classes\triangle.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="source\classes\grid.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="source\classes\fileParse.hpp">
@@ -33,6 +36,9 @@
       <Filter>Source Files</Filter>
     </ClInclude>
     <ClInclude Include="source\classes\triangle.hpp">
+      <Filter>Source Files</Filter>
+    </ClInclude>
+    <ClInclude Include="source\classes\grid.hpp">
       <Filter>Source Files</Filter>
     </ClInclude>
   </ItemGroup>

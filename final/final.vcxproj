@@ -11,11 +11,13 @@
     </ProjectConfiguration>
   </ItemGroup>
   <ItemGroup>
+    <ClCompile Include="source\classes\grid.cpp" />
     <ClCompile Include="source\classes\triangle.cpp" />
     <ClCompile Include="source\main.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="source\classes\fileParse.hpp" />
+    <ClInclude Include="source\classes\grid.hpp" />
     <ClInclude Include="source\classes\interaction.hpp" />
     <ClInclude Include="source\classes\shaderLoad.hpp" />
     <ClInclude Include="source\classes\triangle.hpp" />

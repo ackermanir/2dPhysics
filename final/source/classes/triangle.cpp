@@ -40,6 +40,19 @@ void Collision::print() {
 
 /* Triangle definitions. */
 Triangle::Triangle(glm::vec2 &v0, glm::vec2 &v1, glm::vec2 &v2) {
+    init(v0, v1, v2);
+}
+
+Triangle::Triangle(glm::vec2 &center, float width) {
+    //sqrt(3)/6
+    float ratio = 0.28867513459481288225457439025098f;
+    glm::vec2 top = glm::vec2(center[0], center[1] + (1.0f - ratio) * width);
+    glm::vec2 right = glm::vec2(center[0] + width / 2.0f, center[1] - ratio * width);
+    glm::vec2 left = glm::vec2(center[0] - width / 2.0f, center[1] - ratio * width);
+    init(top, right, left);
+}
+
+void Triangle::init(glm::vec2 &v0, glm::vec2 &v1, glm::vec2 &v2) {
     verts[0] = v0;
     verts[1] = v1;
     verts[2] = v2;
