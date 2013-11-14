@@ -8,6 +8,7 @@
 /* Copy over inputs. Call initialSort */
 Grid::Grid(std::vector<Triangle *> trs, std::vector<Triangle *> stats, float trSize)
     :tris(trs), statics(stats) {
+    indices = std::vector<unsigned int>();
     triSize = trSize;
     initialSort();
 }
@@ -81,6 +82,19 @@ void Grid::initialSort(void) {
 
     //QuickSort in place
     quicksort(0, tris.size() - 1);
+
+    //discover indices
+    indices.clear();
+    indices.push_back(0);
+    int prevDiv;
+    prevDiv = (int)((high - tris[0]->midPt()[1]) / triSize);
+    for (unsigned int i = 1; i < tris.size(); i++) {
+        int div = (int)((high - tris[i]->midPt()[1]) / triSize);
+        if (div != prevDiv) {
+            indices.push_back(i);
+            prevDiv = div;
+        }
+    }
 }
 
 //Timestep each triangle and insertSort into order
@@ -92,25 +106,68 @@ void Grid::rebalance(float stepTime) {
         tris[i]->timeStep(stepTime);
     }
 
-    //Resolve collisions
-    for (unsigned int i = 0; i < tris.size(); i++) {
-        Triangle * tr1 = tris.at(i);
-        for (unsigned int j = 0; j < i; j++) {
-            Triangle * tr2 = tris.at(j);
-            Collision * col = tr1->testColliding(tr2);
-            Triangle::handleCollisions(col);
-            // Here we cleanup collision as it was generated on heap
-            delete col;
+    int count = 0;
+    int count1 = 0;
+    for (unsigned int i = 0; i < indices.size(); i++) {
+        unsigned int off = indices[i];
+        unsigned int next = tris.size();
+        if (i != indices.size() - 1) {
+            next = indices[i+1];
         }
-        //Collide with statics
-        for (unsigned int j = 0; j < statics.size(); j++) {
-            Triangle * tr2 = statics.at(j);
-            Collision * col = tr1->testColliding(tr2);
-            Triangle::handleCollisions(col);
-            // Here we cleanup collision as it was generated on heap
-            delete col;
+        for (unsigned int j = off; j < next; j++) {
+            count1++;
+            Triangle * tr1 = tris.at(j);
+            //collide within own row
+            for (unsigned int k = off; k < j; k++) {
+                Triangle * tr2 = tris.at(k);
+                Collision * col = tr1->testColliding(tr2);
+                Triangle::handleCollisions(col);
+                // Here we cleanup collision as it was generated on heap
+                delete col;
+                count++;
+            }
+
+            //Collide with statics
+            for (unsigned int k = 0; k < statics.size(); k++) {
+                Triangle * tr2 = statics.at(k);
+                Collision * col = tr1->testColliding(tr2);
+                Triangle::handleCollisions(col);
+                delete col;
+                count1++;
+                count++;
+            }
+
+            //collide with row above
+            if (i != 0) {
+                for (unsigned int k = indices[i-1]; k < off; k++) {
+                    Triangle * tr2 = tris.at(k);
+                    Collision * col = tr1->testColliding(tr2);
+                    Triangle::handleCollisions(col);
+                    // Here we cleanup collision as it was generated on heap
+                    delete col;
+                    count++;
+                }
+            }
+
+            //collide with row below
+            if (i != indices.size() - 1) {
+                unsigned int nextNext = tris.size();
+                if (i != indices.size() - 2) {
+                    nextNext = indices[i+2];
+                }
+                for (unsigned int k = next; k < nextNext; k++) {
+                    Triangle * tr2 = tris.at(k);
+                    Collision * col = tr1->testColliding(tr2);
+                    Triangle::handleCollisions(col);
+                    // Here we cleanup collision as it was generated on heap
+                    delete col;
+                    count++;
+                }
+            }
         }
     }
+    // std::cout << "count is " << count << "\n";
+    // std::cout << "count1 is " << count1 << "\n";
 }
 
 //
@@ -119,18 +176,20 @@ void Grid::fixCollisions(void) {
 
 void Grid::print(void) {
     std::cout << "Grid's triangle midpoints:\n";
-    int prevDiv;
-    prevDiv = (int)((high - tris[0]->midPt()[1]) / triSize);
-    for (unsigned int i = 0; i < tris.size(); i++) {
-        glm::vec2 mid = tris[i]->midPt();
-        int div = (int)((high - tris[i]->midPt()[1]) / triSize);
-        if (div != prevDiv) {
-            std::cout << "\n";
-            prevDiv = div;
+    for (unsigned int i = 0; i < indices.size(); i++) {
+        unsigned int off = indices[i];
+        unsigned int next;
+        if (i != indices.size() - 1) {
+            next = indices[i+1];
+        } else {
+            next = tris.size();
         }
-        std::cout << "(" << mid[0] << " " << mid[1] << ") ";
+        for (unsigned int j = off; j < next; j++) {
+            glm::vec2 mid = tris[j]->midPt();
+            std::cout << "(" << mid[0] << " " << mid[1] << ") ";
+        }
+        std::cout << "\n";
     }
-    std::cout << "\n";
 }
 
 //Cleans up

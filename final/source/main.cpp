@@ -120,6 +120,7 @@ int main(int argc, char *argv[]) {
     statics.push_back(&base);
 
     Grid gr(tris, statics, width);
+    gr.print();
 
 	//****************************************************
 	// Setup uniforms
@@ -154,8 +155,10 @@ int main(int argc, char *argv[]) {
 		double begEngine = glfwGetTime();
 
 		//Simulation/collision
-        float stepTime = 0.01f;
-        gr.rebalance(stepTime);
+        float stepTime = 0.005f;
+        for (int i = 0; i < 5; i++) {
+            gr.rebalance(stepTime);
+        }
 
 		// Change fov, allowing user to move
         // Use - or 0 keys

@@ -9,12 +9,14 @@
 class Grid {
 public:
 
-    // Underlying vector
+    // Underlying vector of triangles that move
     std::vector<Triangle *> tris;
     // Special triangles - large
     std::vector<Triangle *> statics;
     // Max width of a triangle
     float triSize;
+
+    std::vector<unsigned int> indices;
 
     //Highest and lowest positions of triangles
     float high;

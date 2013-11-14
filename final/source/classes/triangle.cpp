@@ -154,8 +154,8 @@ void Triangle::handleCollisions(Collision * col) {
     col->t2->velocity -= linForce * col->t2->invMass;
     // 10 is magic constant, we are ignoring moment of inertia anyway
     // Really just a factor that sways how much force rotational response should have
-    col->t1->rotationalVelocity -= t1RotForce * col->t1->invMass * 10;
-    col->t2->rotationalVelocity -= t2RotForce * col->t2->invMass * 10;
+    col->t1->rotationalVelocity -= t1RotForce * col->t1->invMass * 5;
+    col->t2->rotationalVelocity -= t2RotForce * col->t2->invMass * 5;
 }
 
 /*
