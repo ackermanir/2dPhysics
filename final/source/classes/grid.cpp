@@ -2,8 +2,11 @@
 #include <iostream>
 #include <math.h>
 #include <string>
+#include <unordered_map>
+#include <iterator>
 
 #include "grid.hpp"
+
 
 /* Copy over inputs. Call initialSort */
 Grid::Grid(std::vector<Triangle *> trs, std::vector<Triangle *> stats, float trSize)
@@ -108,22 +111,41 @@ void Grid::rebalance(float stepTime) {
 
     int count = 0;
     int count1 = 0;
+	int saved = 0;
+	
     for (unsigned int i = 0; i < indices.size(); i++) {
         unsigned int off = indices[i];
         unsigned int next = tris.size();
         if (i != indices.size() - 1) {
             next = indices[i+1];
         }
+
+		unsigned int ownRowOffset = off;
+
+		unsigned int previousRowStartingOffset = 0;
+		if (i != 0) {
+			previousRowStartingOffset = indices[i - 1];
+		}
+
+		unsigned int nextRowStartingOffset = 0;
+		if (i != indices.size() - 1) {
+			nextRowStartingOffset = indices[i + 1];
+		}
         for (unsigned int j = off; j < next; j++) {
             count1++;
             Triangle * tr1 = tris.at(j);
             //collide within own row
-            for (unsigned int k = off; k < j; k++) {
-                Triangle * tr2 = tris.at(k);
-                Collision * col = tr1->testColliding(tr2);
-                Triangle::handleCollisions(col);
-                // Here we cleanup collision as it was generated on heap
-                delete col;
+			while (tris.at(ownRowOffset)->midPt()[0] < tr1->midPt()[0] - (2.887 * triSize) && ownRowOffset < j) {
+				ownRowOffset++;
+
+				saved++;
+			}
+
+			for (unsigned int k = ownRowOffset; k < j; k++) {
+				Triangle * tr2 = tris.at(k);
+				Collision * col = tr1->testColliding(tr2);
+				Triangle::handleCollisions(col);
+				delete col;
                 count++;
             }
 
@@ -139,12 +161,23 @@ void Grid::rebalance(float stepTime) {
 
             //collide with row above
             if (i != 0) {
-                for (unsigned int k = indices[i-1]; k < off; k++) {
+				while (tris.at(previousRowStartingOffset)->midPt()[0] < tr1->midPt()[0] - (2.5 * triSize) && previousRowStartingOffset < off) {
+					previousRowStartingOffset++;
+
+					saved++;
+				}
+
+                for (unsigned int k = previousRowStartingOffset; k < off; k++) {
                     Triangle * tr2 = tris.at(k);
-                    Collision * col = tr1->testColliding(tr2);
-                    Triangle::handleCollisions(col);
-                    // Here we cleanup collision as it was generated on heap
-                    delete col;
+					if (tr2->midPt()[0] > tr1->midPt()[0] + (2.5 * triSize)) {
+						saved += (off - k);
+						break;
+					}
+
+					Collision * col = tr1->testColliding(tr2);
+					Triangle::handleCollisions(col);
+
+					delete col;
                     count++;
                 }
             }
@@ -155,8 +188,19 @@ void Grid::rebalance(float stepTime) {
                 if (i != indices.size() - 2) {
                     nextNext = indices[i+2];
                 }
+				while (tris.at(nextRowStartingOffset)->midPt()[0] < tr1->midPt()[0] - (2.5 * triSize) && nextRowStartingOffset < nextNext - 1) {
+					nextRowStartingOffset++;
+
+					saved++;
+				}
+
                 for (unsigned int k = next; k < nextNext; k++) {
                     Triangle * tr2 = tris.at(k);
+					if (tr2->midPt()[0] > tr1->midPt()[0] + (2.5 * triSize)) {
+						saved += (nextNext - k);
+						break;
+					}
+
                     Collision * col = tr1->testColliding(tr2);
                     Triangle::handleCollisions(col);
                     // Here we cleanup collision as it was generated on heap
@@ -166,8 +210,8 @@ void Grid::rebalance(float stepTime) {
             }
         }
     }
-    // std::cout << "count is " << count << "\n";
-    // std::cout << "count1 is " << count1 << "\n";
+    //std::cout << "count is " << count << "\n";
+    std::cout << "saved is " << (float)saved * 100/(count + saved) << "\n";
 }
 
 //
