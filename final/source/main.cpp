@@ -40,7 +40,7 @@ int main(int argc, char *argv[]) {
 	//collection of triangles in scene
 	std::vector<Triangle *> tris = std::vector<Triangle *>();
 	//Location of camera in the scene
-	glm::vec3 camLoc(0.0f, 0.0f, 50.0f);
+	glm::vec3 camLoc(0.0f, 0.0f, 99.0f);
     //Camera view matrix
     glm::mat4 view = glm::lookAt(camLoc, glm::vec3(0,0,0), glm::vec3(0,1,0));
 
@@ -56,7 +56,7 @@ int main(int argc, char *argv[]) {
 	glfwOpenWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
 
 	// Open a window and create its OpenGL context
-	if( !glfwOpenWindow( 1350, 768, 0,0,0,0, 32,0, GLFW_WINDOW)) {
+	if( !glfwOpenWindow( 1366, 768, 0,0,0,0, 32,0, GLFW_WINDOW)) {
 		fprintf( stderr, "Failed to open GLFW window\n");
 		glfwTerminate();
 		return -1;
