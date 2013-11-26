@@ -49,7 +49,8 @@ Triangle::Triangle(glm::vec2 &center, float width) {
     glm::vec2 top = glm::vec2(center[0], center[1] + (1.0f - ratio) * width);
     glm::vec2 right = glm::vec2(center[0] + width / 2.0f, center[1] - ratio * width);
     glm::vec2 left = glm::vec2(center[0] - width / 2.0f, center[1] - ratio * width);
-    init(top, right, left);
+    //want counterclockwise for openGL standards
+    init(top, left, right);
 }
 
 void Triangle::init(glm::vec2 &v0, glm::vec2 &v1, glm::vec2 &v2) {
@@ -209,6 +210,7 @@ glm::vec2 project(glm::vec2 v1, glm::vec2 v2) {
 /*
   Returns true if there is  a collision between objects using SAT collision detection.
   If there is a collision, colVec will contain the minimal vector to resolve collision.
+  colVec is from A to B (i.e. B-A)
   There is no information of where the collision occurs in this algo.
  */
 bool Triangle::isCollision(Triangle *triA, Triangle *triB, glm::vec2 &colVec) {
@@ -241,21 +243,160 @@ bool Triangle::isCollision(Triangle *triA, Triangle *triB, glm::vec2 &colVec) {
             if (projDist > maxB) { maxB = projDist;}
         }
 
-        // opposite of if ((minA < maxB) || (maxA > minB)) {
+        // If we find some gap, return false immeditely
         if ((minA > maxB) || (maxA < minB)) {
             return false;
         } else {
-            if (minA < maxB && (maxB - minA < minDepth)) {
-                colVec = norms[j] * maxB - minA;
-            } else if (maxA > minB && (maxA - minB < minDepth)) {
-                colVec = norms[j] * maxA - minB;
+            //Needs fixing
+            if ((maxA > minB && minB > minA) && (maxA - minB < minDepth)) {
+                colVec = norms[j] * -1.0f * (maxA - minB);
+                minDepth = maxA - minB;
+            } else if ((minA < maxB && minA > minB) && (maxB - minA < minDepth)) {
+                colVec = norms[j] * (maxB - minA);
+                minDepth = maxB - minA;
+            }
+            if (glm::dot(colVec, (midB - midA)) < 0.0f) {
+                colVec *= -1.0f;
             }
         }
     }
     return true;
 }
 
-// glm::vec2 findCollisionPt(
+
+// Clips v1 and v2 into pts based on whether they are further than cutoff along norm
+// returns the number of points kept stored in pts
+int clip(glm::vec2 v1, glm::vec2 v2, glm::vec2 norm,
+         float cutoff, glm::vec2 *pts) {
+    int kept = 0;
+    float dist1 = glm::dot(norm, v1) - cutoff;
+    float dist2 = glm::dot(norm, v2) - cutoff;
+    if (dist1 > 0.0f) {
+        pts[kept] = v1;
+        kept++;
+    }
+    if (dist2 > 0.0f) {
+        pts[kept] = v2;
+        kept++;
+    }
+    if (dist1 * dist2 < 0.0f) {
+        glm::vec2 dif = v2 - v1;
+        float percLeft = dist1 / (dist1 - dist2);
+        dif *= percLeft;
+        dif += v1;
+        pts[kept] = dif;
+        kept++;
+    }
+    return kept;
+}
+
+// selects an edge from this that is most perpindicular to norm
+// chosenPt is edge furthest along norm
+// Two pts used stored inside edge
+void Triangle::bestEdge(glm::vec2 norm, glm::vec2 &chosenPt, glm::vec2 *edge) {
+    float max = -FLT_MAX;
+    int index = 0;
+    //Make index the pt furthest into other shape
+    for (int i = 0; i < 3; i++) {
+        float proj = glm::dot(norm, verts[i]);
+        if (proj > max) {
+            max = proj;
+            index = i;
+        }
+    }
+    chosenPt = verts[index];
+    glm::vec2 v0 = verts[(index + 2) % 3];
+    glm::vec2 v1 = verts[(index + 1) % 3];
+    glm::vec2 cw = chosenPt - v0;
+    glm::vec2 ccw = chosenPt - v1;
+    // Want the edge most perpendicular
+    if (glm::dot(cw, norm) < glm::dot(ccw, norm)) {
+        edge[0] = v0;
+        edge[1] = chosenPt;
+    } else {
+        edge[0] = chosenPt;
+        edge[1] = v1;
+    }
+}
+
+
+// Uses clipping to determine the collision point between triangle A and B
+// given the SAT discovered minimal translation vector colVec
+bool Triangle::findCollisionPt(Triangle *triA, Triangle *triB, glm::vec2 colVec, glm::vec2 &colPt) {
+    const glm::vec2 * ptsA = triA->verts;
+    const glm::vec2 * ptsB = triB->verts;
+    glm::vec2 colNorm = glm::normalize(colVec);
+    glm::vec2 edgeA[2];
+    glm::vec2 ptA;
+    glm::vec2 edgeB[2];
+    glm::vec2 ptB;
+    triA->bestEdge(colNorm, ptA, edgeA);
+    triB->bestEdge(-1.0f * colNorm, ptB, edgeB);
+
+    glm::vec2 ref[2];
+    glm::vec2 inc[2];
+    glm::vec2 refPt;
+    bool flip = false;
+    float edgeAD = glm::dot(ptA - (ptA == edgeA[0] ? edgeA[1] : edgeA[0]), colNorm);
+    float edgeBD = glm::dot(ptB - (ptB == edgeB[0] ? edgeB[1] : edgeB[0]), colNorm);
+    if (edgeAD < edgeBD) {
+        refPt = ptA;
+        ref[0] = edgeA[0];
+        ref[1] = edgeA[1];
+        inc[0] = edgeB[0];
+        inc[1] = edgeB[1];
+    } else {
+        refPt = ptB;
+        ref[0] = edgeB[0];
+        ref[1] = edgeB[1];
+        inc[0] = edgeA[0];
+        inc[1] = edgeA[1];
+        flip = true;
+    }
+
+    glm::vec2 clipN1 = glm::normalize(ref[1] - ref[0]);
+    glm::vec2 clipped[2];
+    int kept = clip(inc[0], inc[1], clipN1,
+                    glm::dot(ref[0], clipN1), clipped);
+    if (kept < 2) {
+        return false;
+    }
+
+    kept = clip(clipped[0], clipped[1], -1.0f * clipN1,
+                -1.0f * glm::dot(ref[1], clipN1), clipped);
+    if (kept < 2) {
+        return false;
+    }
+
+    glm::vec2 clipN3 = glm::vec2(clipN1[1], clipN1[0] * -1.0f);
+    if (flip) {
+        clipN3 *= -1.0f;
+    }
+    float max = glm::dot(clipN3, refPt);
+
+    float clip0Depth = glm::dot(clipN3, clipped[0]) - max;
+    float clip1Depth = glm::dot(clipN3, clipped[1]) - max;
+    if (clip0Depth < 0.0f) {
+        clipped[0] = clipped[1];
+        kept--;
+    }
+
+    if (clip1Depth < 0.0f) {
+        if (kept == 2) {
+            clipped[0] = clipped[1];
+        }
+        kept--;
+    }
+
+    if (kept == 2) {
+        colPt = (clipped[0] + clipped[1]) / 2.0f;
+        return true;
+    } else if (kept == 1) {
+        colPt = clipped[0];
+        return true;
+    }
+    return false;
+}
 
 
 
@@ -267,18 +408,17 @@ bool Triangle::isCollision(Triangle *triA, Triangle *triB, glm::vec2 &colVec) {
   Returned Collision must be deleted!
  */
 Collision * Triangle::testColliding(Triangle *other) {
-    if (! Triangle::isCollision(this, other, glm::vec2())) {
+    glm::vec2 colVec;
+    if (! Triangle::isCollision(this, other, colVec)) {
         return new Collision(this, other);
     }
-    Collision * cols = ptsColliding(other, this);
-    if (cols->cols.size() == 0) {
-        delete cols;
-        cols = ptsColliding(this, other);
-    } else {
-        Collision * cols2 = ptsColliding(this, other);
-        cols->mergeReverse(cols2);
-        delete cols2;
+    glm::vec2 colPt;
+    if (! Triangle::findCollisionPt(this, other, colVec, colPt)) {
+        return new Collision(this, other);
     }
+    // Collision * cols = ptsColliding(this, other);
+    Collision * cols = new Collision(other, this);
+    cols->addCollision(colPt, colVec);
     return cols;
 }
 
@@ -312,10 +452,10 @@ void Triangle::handleCollisions(Collision * col) {
         t2RotForce +=  (-1.0f + ccw2 * 2.0f) * glm::length(t2PerpForce) / glm::length(t2Radius);
     }
 
-    // capFloat(linForce[0], 0.5f);
-    // capFloat(linForce[1], 0.5f);
-    // capFloat(t1RotForce, 0.4f);
-    // capFloat(t2RotForce, 0.4f);
+    capFloat(linForce[0], 1.0f);
+    capFloat(linForce[1], 1.0f);
+    capFloat(t1RotForce, 0.4f);
+    capFloat(t2RotForce, 0.4f);
     //Apply force to both triangles in opposite directions
     // dv = F * 1/m
     col->t1->velocity += linForce * col->t1->invMass;

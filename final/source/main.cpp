@@ -77,7 +77,7 @@ int main(int argc, char *argv[]) {
 	glEnable(GL_DEPTH_TEST);
 	glDepthFunc(GL_LESS);
 	// Cull triangles which normal is not towards the camera
-	//glEnable(GL_CULL_FACE);
+	glEnable(GL_CULL_FACE);
 
 	//Setup VAO
 	GLuint VertexArrayID;
@@ -94,35 +94,15 @@ int main(int argc, char *argv[]) {
 	// Load in objects to world
 	//****************************************************
 
-
-
     //Testing line collision code
-    // glm::vec2 tr1[3];
-    // glm::vec2 tr2[3];
-
-    // tr1[0] = glm::vec2(-5.0f, 0.0f);
-    // tr1[1] = glm::vec2(-2.0f, 3.0f);
-    // tr1[2] = glm::vec2(0.0f, 0.0f);
-
-    // tr2[0] = glm::vec2(-0.2f, 3.0f);
-    // tr2[1] = glm::vec2(-0.05f, 3.0f);
-    // tr2[2] = glm::vec2(-0.1f, -0.5f);
-    // Triangle *t = new Triangle(tr1[0], tr1[1], tr1[2]);
-    // t->invMass = 0.0f;
-    // tris.push_back(t);
-    // t = new Triangle(tr2[0], tr2[1], tr2[2]);
-    // t->invMass = 1.0f;
-    // tris.push_back(t);
 
     // Triangle *t = new Triangle(glm::vec2(.2,5), 5.0);
-    // t->invMass = 1.0f;
+    // t->invMass = 0.0f;
     // tris.push_back(t);
-
     // Triangle *t2 = new Triangle(glm::vec2(0,11), 5.0);
     // t2->invMass = 1.0f;
     // tris.push_back(t2);
-
-    // Triangle base = Triangle(glm::vec2(-60.0f, -0.0f), glm::vec2(60.0f, -0.0f), glm::vec2(0.0f, -120.0f));
+    // Triangle base = Triangle(glm::vec2(-60.0f, -0.0f), glm::vec2(0.0f, -120.0f), glm::vec2(60.0f, -0.0f));
 
     //Testing line collision code
 
@@ -130,7 +110,7 @@ int main(int argc, char *argv[]) {
     srand(6);
     glm::vec2 upLeft(-50.0f, 50.0f);
     glm::vec2 downRight(50.0f, -50.0f);;
-    int divs = 10;
+    int divs = 30;
     float width = (downRight[0] - upLeft[0]) / divs / 2.0f;
     for (int i = 0; i < divs; i++) {
         float port = (downRight[0] - upLeft[0]) / divs;
@@ -145,7 +125,7 @@ int main(int argc, char *argv[]) {
     }
 
     //Base triangle
-    Triangle base = Triangle(glm::vec2(-60.0f, -53.0f), glm::vec2(60.0f, -53.0f), glm::vec2(0.0f, -120.0f));
+    Triangle base = Triangle(glm::vec2(-60.0f, -53.0f), glm::vec2(0.0f, -120.0f), glm::vec2(60.0f, -53.0f));
     // Inverse mass of 0 means infinite mass a.k.a. static object
     base.invMass = 0.0f;
 	std::vector<Triangle *> statics = std::vector<Triangle *>();

@@ -8,7 +8,7 @@
 #include "grid.hpp"
 #include <omp.h>
 
-#define LINEAR 1
+#define LINEAR 0
 
 
 /* Copy over inputs. Call initialSort */

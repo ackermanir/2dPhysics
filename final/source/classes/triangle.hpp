@@ -37,8 +37,11 @@ public:
                                Collision *cols);
     static void handleCollisions(Collision * col);
     static bool isCollision(Triangle *triA, Triangle *triB, glm::vec2 &colVec);
+    static bool findCollisionPt(Triangle *triA, Triangle *triB,
+                                glm::vec2 colVec, glm::vec2 &colPt);
     // Return all collisions between this and other triangle
-    Collision * Triangle::testColliding(Triangle *other);
+    Collision * testColliding(Triangle *other);
+    void bestEdge(glm::vec2 norm, glm::vec2 &chosenPt, glm::vec2 *edge);
 	void timeStep(float delta);
     glm::vec2 midPt(void);
     // OpenGL functions
