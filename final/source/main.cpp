@@ -21,6 +21,7 @@
 #include <time.h>
 #include <math.h>
 #include <cstdlib> //for srand
+#include <omp.h>
 
 using namespace std;
 
@@ -93,11 +94,32 @@ int main(int argc, char *argv[]) {
 	// Load in objects to world
 	//****************************************************
 
-    srand(6);
 
+
+    //Testing line collision code
+    // glm::vec2 tr1[3];
+    // glm::vec2 tr2[3];
+
+    // tr1[0] = glm::vec2(-5.0f, 0.0f);
+    // tr1[1] = glm::vec2(-2.0f, 3.0f);
+    // tr1[2] = glm::vec2(0.0f, 0.0f);
+
+    // tr2[0] = glm::vec2(-0.2f, 3.0f);
+    // tr2[1] = glm::vec2(-0.05f, 3.0f);
+    // tr2[2] = glm::vec2(-0.1f, -0.5f);
+    // Triangle *t = new Triangle(tr1[0], tr1[1], tr1[2]);
+    // t->invMass = 0.0f;
+    // tris.push_back(t);
+    // t = new Triangle(tr2[0], tr2[1], tr2[2]);
+    // t->invMass = 1.0f;
+    // tris.push_back(t);
+
+    //Testing line collision code
+
+
+    srand(6);
     glm::vec2 upLeft(-50.0f, 50.0f);
     glm::vec2 downRight(50.0f, -50.0f);;
-
     int divs = 10;
     float width = (downRight[0] - upLeft[0]) / divs / 2.0f;
     for (int i = 0; i < divs; i++) {
@@ -120,7 +142,6 @@ int main(int argc, char *argv[]) {
     statics.push_back(&base);
 
     Grid gr(tris, statics, width);
-    gr.print();
 
 	//****************************************************
 	// Setup uniforms
@@ -129,67 +150,70 @@ int main(int argc, char *argv[]) {
 
 	//time keeping
 	double oldTime = glfwGetTime();
-	double lastFPSTime = glfwGetTime();
+	double lastDispTime = glfwGetTime();
 	double engineTime = 0.0;
 	int numFrames = 0;
+
 	do{
-		//****************************************************
-		// FPS / time calculations
-		//****************************************************
-		double curTime = glfwGetTime();
-		float deltaTime = (float)(curTime - oldTime);
-		oldTime = curTime;
+        //****************************************************
+        // FPS / time calculations
+        //****************************************************
+        double curTime = glfwGetTime();
+        float deltaTime = (float)(curTime - oldTime);
+        oldTime = curTime;
 
-		numFrames++;
-		if ( curTime - lastFPSTime >= 1.0 ){
-			double perEngineTime = 100 * engineTime;
-			std::cout << 1000.0/double(numFrames) << " ms/frame.";
-			std::cout << " Engine: " << perEngineTime << "%\n";
-			engineTime = 0.0;
-			numFrames = 0;
-			lastFPSTime += 1.0;
-		}
-		//****************************************************
-		// Physics engine
-		//****************************************************
-		double begEngine = glfwGetTime();
+        numFrames++;
+        if ( numFrames > 9 ){
+            double perEngineTime = engineTime / 10 * 1000;
+            std::cout << " Engine: " << perEngineTime << "ms per frame\n";
+            engineTime = 0.0;
+            numFrames = 0;
+            lastDispTime = curTime;
+        }
+        //****************************************************
+        // Physics engine
+        //****************************************************
+        double begEngine = glfwGetTime();
 
-		//Simulation/collision
-        float stepTime = 0.005f;
+        //Simulation/collision
+        //bad at 0.001f barely
+        // bad at 0.0005f;
+        // seemed ok at 0.0001f;
+        float stepTime = 0.0001f;
         for (int i = 0; i < 5; i++) {
             gr.rebalance(stepTime);
         }
 
-		// Change fov, allowing user to move
+        // Change fov, allowing user to move
         // Use - or 0 keys
-		glm::mat4 proj = projection();
+        glm::mat4 proj = projection();
 
-		double endEngine = glfwGetTime();
-		engineTime += endEngine - begEngine;
+        double endEngine = glfwGetTime();
+        engineTime += endEngine - begEngine;
 
-		//****************************************************
-		// OpenGL rendering
-		//****************************************************
-		// Clear the screen and depth buffer
-		glClear( GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-		// Use our shader
-		glUseProgram(programID);
+        //****************************************************
+        // OpenGL rendering
+        //****************************************************
+        // Clear the screen and depth buffer
+        glClear( GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+        // Use our shader
+        glUseProgram(programID);
 
         // Transform matrix only takes into account camera and perspective matrices
         glm::mat4 mvp = proj * view;
         glUniformMatrix4fv(mvpId, 1, GL_FALSE, &mvp[0][0]);
 
         //Go over each Triangle and have them draw themselves
-		for (unsigned int i = 0; i < tris.size(); i++) {
-			tris[i]->drawSelf();
-		}
+        for (unsigned int i = 0; i < tris.size(); i++) {
+            tris[i]->drawSelf();
+        }
 
-		for (unsigned int i = 0; i < statics.size(); i++) {
-			statics[i]->drawSelf();
-		}
+        for (unsigned int i = 0; i < statics.size(); i++) {
+            statics[i]->drawSelf();
+        }
 
-		// Swap buffers
-		glfwSwapBuffers();
+        // Swap buffers
+        glfwSwapBuffers();
 
 	} // Check if the ESC key was pressed or the window was closed
 	while( glfwGetKey(GLFW_KEY_ESC) != GLFW_PRESS &&

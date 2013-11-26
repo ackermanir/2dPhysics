@@ -5,10 +5,10 @@
 #include <GL/glew.h>
 #include <GL/glfw.h>
 #include <glm.hpp>
-
+#include <algorithm>
 #include <vector>
 
-#define HOOKE_CONSTANT 20.0f
+#define HOOKE_CONSTANT 10.0f
 
 class Collision;
 
@@ -30,6 +30,11 @@ public:
     void init(glm::vec2 &v0, glm::vec2 &v1, glm::vec2 &v2);
     //Static functions for collisions between triangles
     static Collision * ptsColliding(Triangle *outerT, Triangle *innerT);
+    static glm::vec2
+    Triangle::lineCollision(const glm::vec2 &a1, const glm::vec2 &a2,
+                            const glm::vec2 &b1, const glm::vec2 &b2, bool &none);
+    static void Triangle::sidesColliding(Triangle *innerT, Triangle *outerT,
+                                         Collision *cols);
     static void handleCollisions(Collision * col);
     // Return all collisions between this and other triangle
     Collision * Triangle::testColliding(Triangle *other);

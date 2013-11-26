@@ -4,6 +4,7 @@
 #include <string>
 
 #include "grid.hpp"
+#include <omp.h>
 
 /* Copy over inputs. Call initialSort */
 Grid::Grid(std::vector<Triangle *> trs, std::vector<Triangle *> stats, float trSize)
@@ -101,21 +102,39 @@ void Grid::initialSort(void) {
 void Grid::rebalance(float stepTime) {
     initialSort();
 
-    //Simulate all triangles falling
+    // Simulate all triangles falling
     for (unsigned int i = 0; i < tris.size(); i++) {
         tris[i]->timeStep(stepTime);
     }
 
-    int count = 0;
-    int count1 = 0;
-    for (unsigned int i = 0; i < indices.size(); i++) {
+    // // Linear code
+    // for (unsigned int j = 0; j < tris.size(); j++) {
+    //     Triangle * tr1 = tris.at(j);
+    //     //collide with everyone less than you
+    //     for (unsigned int k = 0; k < j; k++) {
+    //         Triangle * tr2 = tris.at(k);
+    //         Collision * col = tr1->testColliding(tr2);
+    //         Triangle::handleCollisions(col);
+    //         // Here we cleanup collision as it was generated on heap
+    //         delete col;
+    //     }
+    //     //collide with statics
+    //     for (unsigned int k = 0; k < statics.size(); k++) {
+    //         Triangle * tr2 = statics.at(k);
+    //         Collision * col = tr1->testColliding(tr2);
+    //         Triangle::handleCollisions(col);
+    //         delete col;
+    //     }
+    // }
+
+// #pragma omp parallel for ordered schedule(dynamic) num_threads(8)
+    for (int i = 0; i < indices.size(); i++) {
         unsigned int off = indices[i];
         unsigned int next = tris.size();
         if (i != indices.size() - 1) {
             next = indices[i+1];
         }
         for (unsigned int j = off; j < next; j++) {
-            count1++;
             Triangle * tr1 = tris.at(j);
             //collide within own row
             for (unsigned int k = off; k < j; k++) {
@@ -124,7 +143,6 @@ void Grid::rebalance(float stepTime) {
                 Triangle::handleCollisions(col);
                 // Here we cleanup collision as it was generated on heap
                 delete col;
-                count++;
             }
 
             //Collide with statics
@@ -133,20 +151,6 @@ void Grid::rebalance(float stepTime) {
                 Collision * col = tr1->testColliding(tr2);
                 Triangle::handleCollisions(col);
                 delete col;
-                count1++;
-                count++;
-            }
-
-            //collide with row above
-            if (i != 0) {
-                for (unsigned int k = indices[i-1]; k < off; k++) {
-                    Triangle * tr2 = tris.at(k);
-                    Collision * col = tr1->testColliding(tr2);
-                    Triangle::handleCollisions(col);
-                    // Here we cleanup collision as it was generated on heap
-                    delete col;
-                    count++;
-                }
             }
 
             //collide with row below
@@ -161,13 +165,10 @@ void Grid::rebalance(float stepTime) {
                     Triangle::handleCollisions(col);
                     // Here we cleanup collision as it was generated on heap
                     delete col;
-                    count++;
                 }
             }
         }
     }
-    // std::cout << "count is " << count << "\n";
-    // std::cout << "count1 is " << count1 << "\n";
 }
 
 //

@@ -16,7 +16,7 @@ Collision::Collision(Triangle *tr1, Triangle *tr2)
 /* Reverses other collisions and adds them to this's vector of collisions. */
 void Collision::mergeReverse(Collision *other) {
     for (std::vector<std::pair<glm::vec2, glm::vec2>>::iterator it = other->cols.begin();
-         it != other->cols.end(); ++it) {
+            it != other->cols.end(); ++it) {
         it->first += it->second;
         it->second = -it->second;
     }
@@ -61,6 +61,78 @@ void Triangle::init(glm::vec2 &v0, glm::vec2 &v1, glm::vec2 &v2) {
     rotationalVelocity = .0f;
 	glArraySetup();
 }
+
+
+// Tests if there is a collision of these two lines.
+// Math formula taken from wikipedia's line-line intersection page.
+// Sets none to true if no intersection.
+// Returns the intersection point if there is one.
+glm::vec2 Triangle::lineCollision(const glm::vec2 &a1, const glm::vec2 &a2,
+                                  const glm::vec2 &b1, const glm::vec2 &b2, bool &none) {
+    float denom = (a1.x - a2.x)*(b1.y - b1.y) - (a1.y - a2.y)*(b1.x-b2.x);
+    if (denom < 0.0001f && denom > -0.0001f) {
+        none = true;
+        return glm::vec2(0.0f, 0.0f);
+    }
+    float xNum = (a1.x*a2.y - a1.y*a2.x)*(b1.x - b2.x) -
+        (a1.x - a2.x)*(b1.x*b2.y - b1.y*b2.x);
+    float yNum = (a1.x*a2.y - a1.y*a2.x)*(b1.y - b2.y) -
+        (a1.y - a2.y)*(b1.x*b2.y - b1.y*b2.x);
+    xNum /= denom;
+    yNum /= denom;
+
+    if (!(((xNum > a1.x && xNum < a2.x) || (xNum < a1.x && xNum > a2.x)) &&
+          ((xNum > b1.x && xNum < b2.x) || (xNum < b1.x && xNum > b2.x)) &&
+          ((yNum > a1.y && yNum < a2.y) || (yNum < a1.y && yNum > a2.y)) &&
+          ((yNum > b1.y && yNum < b2.y) || (yNum < b1.y && yNum > b2.y)))) {
+        none = true;
+        return glm::vec2(0.0f, 0.0f);
+    }
+    return glm::vec2(xNum, yNum);
+}
+
+//If sides are colliding of these triangles, adds a collision to cols
+void Triangle::sidesColliding(Triangle *innerT, Triangle *outerT, Collision *cols) {
+    const glm::vec2 * outerPts = outerT->verts;
+    const glm::vec2 * innerPts = innerT->verts;
+    float distance = -1.0f;
+    glm::vec2 chosenPt;
+    glm::vec2 colPt;
+    for (int i = 0; i < 3; i++) {
+        for (int j = 0; j < 3; j++) {
+            bool errors = false;
+            glm::vec2 col =
+                lineCollision(innerPts[i], innerPts[(i + 1) % 3],
+                              outerPts[j], outerPts[(j + 1) % 3], errors);
+            if (errors) { continue; }
+            glm::vec2 pts[4] = {innerPts[i],
+                                innerPts[(i + 1) % 3],
+                                outerPts[j],
+                                outerPts[(j + 1) % 3]};
+			float dists[4] = {glm::length(col - pts[0]),
+                             glm::length(col - pts[1]),
+                             glm::length(col - pts[2]),
+                             glm::length(col - pts[3])};
+            float distMin = dists[0];
+            glm::vec2 minPt = pts[0];
+            for (int i = 1; i < 4; i++) {
+                if (distMin > dists[i]) {
+                    distMin = dists[i];
+                    chosenPt = pts[i];
+                }
+            }
+			if (distMin > distance) {
+                chosenPt = minPt;
+                distance = distMin;
+                colPt = col;
+            }
+        }
+    }
+    if (distance != -1.0f) {
+        cols->addCollision(chosenPt, chosenPt - colPt);
+    }
+}
+
 
 /*
   Returns a vector of all vec2s of collisions of points of innerT
@@ -119,6 +191,14 @@ Triangle::ptsColliding(Triangle *outerT, Triangle *innerT) {
     return col;
 }
 
+void capFloat(float& input, float max) {
+    if (input > max) {
+        input = max;
+    } else if (input < -max) {
+        input = -max;
+    }
+}
+
 /*
   Fixes the collision specified by col by applying force to both the triangles
   t1 and t2 according to hookes law.
@@ -144,18 +224,28 @@ void Triangle::handleCollisions(Collision * col) {
         //CCW checks to see what direction the rotation is in
         // It would be great to replace with something cheaper
         bool ccw = glm::cross(glm::vec3(t1PerpForce, 0.0f), glm::vec3(t1Radius, 0.0f)).z > 0.0f;
-        t1RotForce += (1.0f + ccw * -2.0f) * glm::length(t1PerpForce) * glm::length(t1Radius);
-        ccw = glm::cross(glm::vec3(t2PerpForce, 0.0f), glm::vec3(t2Radius, 0.0f)).z > 0.0f;
-        t2RotForce += (1.0f + ccw * -2.0f) * glm::length(t2PerpForce) * glm::length(t2Radius);
+        bool ccw2 = glm::cross(glm::vec3(t2PerpForce, 0.0f), glm::vec3(t2Radius, 0.0f)).z > 0.0f;
+        t1RotForce +=  (1.0f + ccw * -2.0f) * glm::length(t1PerpForce) / glm::length(t1Radius);
+        t2RotForce +=  (1.0f + ccw2 * -2.0f) * glm::length(t2PerpForce) / glm::length(t2Radius);
     }
+
+    capFloat(linForce[0], 0.5f);
+    capFloat(linForce[1], 0.5f);
+    capFloat(t1RotForce, 0.4f);
+    capFloat(t2RotForce, 0.4f);
+    // if (col->cols.size() > 0) {
+    //     std::cout << "Rot force: " << t1RotForce << "\n";
+    //     std::cout << "Lin force: " << linForce[0] << " "
+    //               << linForce[1] << "\n";
+    // }
     //Apply force to both triangles in opposite directions
     // dv = F * 1/m
     col->t1->velocity += linForce * col->t1->invMass;
     col->t2->velocity -= linForce * col->t2->invMass;
     // 10 is magic constant, we are ignoring moment of inertia anyway
     // Really just a factor that sways how much force rotational response should have
-    col->t1->rotationalVelocity -= t1RotForce * col->t1->invMass * 5;
-    col->t2->rotationalVelocity -= t2RotForce * col->t2->invMass * 5;
+    col->t1->rotationalVelocity -= t1RotForce * col->t1->invMass;
+    col->t2->rotationalVelocity -= t2RotForce * col->t2->invMass;
 }
 
 /*
@@ -175,6 +265,9 @@ Collision * Triangle::testColliding(Triangle *other) {
         cols->mergeReverse(cols2);
         delete cols2;
     }
+    if (cols->cols.size() == 0) {
+        sidesColliding(this, other, cols);
+    }
     return cols;
 }
 
@@ -191,9 +284,9 @@ void Triangle::timeStep(float delta) {
         verts[i] = mid + rotDelta;
         verts[i] += velocity * delta;
     }
-    velocity += glm::vec2(.0f, -1.0f) * delta;
+    velocity += glm::vec2(.0f, -10.0f) * delta;
     //Simulate air drag
-    rotationalVelocity *= 0.995f;
+    rotationalVelocity *= 0.9995f;
     velocity *= 0.9995f;
 }
 
