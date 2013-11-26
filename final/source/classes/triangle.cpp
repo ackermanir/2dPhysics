@@ -63,145 +63,6 @@ void Triangle::init(glm::vec2 &v0, glm::vec2 &v1, glm::vec2 &v2) {
 	glArraySetup();
 }
 
-
-// Tests if there is a collision of these two lines.
-// Math formula taken from wikipedia's line-line intersection page.
-// Sets none to true if no intersection.
-// Returns the intersection point if there is one.
-glm::vec2 Triangle::lineCollision(const glm::vec2 &a1, const glm::vec2 &a2,
-                                  const glm::vec2 &b1, const glm::vec2 &b2, bool &none) {
-    float denom = (a1.x - a2.x)*(b1.y - b1.y) - (a1.y - a2.y)*(b1.x-b2.x);
-    if (denom < 0.0001f && denom > -0.0001f) {
-        none = true;
-        return glm::vec2(0.0f, 0.0f);
-    }
-    float xNum = (a1.x*a2.y - a1.y*a2.x)*(b1.x - b2.x) -
-        (a1.x - a2.x)*(b1.x*b2.y - b1.y*b2.x);
-    float yNum = (a1.x*a2.y - a1.y*a2.x)*(b1.y - b2.y) -
-        (a1.y - a2.y)*(b1.x*b2.y - b1.y*b2.x);
-    xNum /= denom;
-    yNum /= denom;
-
-    //line collision must take place within the line segments
-    if (!(((xNum > a1.x && xNum < a2.x) || (xNum < a1.x && xNum > a2.x)) &&
-          ((xNum > b1.x && xNum < b2.x) || (xNum < b1.x && xNum > b2.x)) &&
-          ((yNum > a1.y && yNum < a2.y) || (yNum < a1.y && yNum > a2.y)) &&
-          ((yNum > b1.y && yNum < b2.y) || (yNum < b1.y && yNum > b2.y)))) {
-        none = true;
-        return glm::vec2(0.0f, 0.0f);
-    }
-    return glm::vec2(xNum, yNum);
-}
-
-//If sides are colliding of these triangles, adds a collision to cols
-void Triangle::sidesColliding(Triangle *innerT, Triangle *outerT, Collision *cols) {
-    const glm::vec2 * outerPts = outerT->verts;
-    const glm::vec2 * innerPts = innerT->verts;
-    float distance = -1.0f;
-    glm::vec2 chosenPt;
-    glm::vec2 colPt;
-    for (int i = 0; i < 3; i++) {
-        for (int j = 0; j < 3; j++) {
-            bool errors = false;
-            glm::vec2 col =
-                lineCollision(innerPts[i], innerPts[(i + 1) % 3],
-                              outerPts[j], outerPts[(j + 1) % 3], errors);
-            if (errors) { continue; }
-            glm::vec2 pts[4] = {innerPts[i],
-                                innerPts[(i + 1) % 3],
-                                outerPts[j],
-                                outerPts[(j + 1) % 3]};
-			float dists[4] = {glm::length(col - pts[0]),
-                             glm::length(col - pts[1]),
-                             glm::length(col - pts[2]),
-                             glm::length(col - pts[3])};
-            float distMin = dists[0];
-            glm::vec2 minPt = pts[0];
-            for (int i = 1; i < 4; i++) {
-                if (distMin > dists[i]) {
-                    distMin = dists[i];
-                    chosenPt = pts[i];
-                }
-            }
-			if (distMin > distance) {
-                chosenPt = minPt;
-                distance = distMin;
-                colPt = col;
-            }
-        }
-    }
-    if (distance != -1.0f) {
-        cols->addCollision(chosenPt, chosenPt - colPt);
-    }
-}
-
-
-/*
-  Returns a vector of all vec2s of collisions of points of innerT
-  triangle inside the outerT. Each point will either not be inside the
-  outer Triangle or will be codified into a vec2 inside collisions of
-  the smallest distance from that point to a side.
-
-  Returned vector must be deleted!
- */
-Collision *
-Triangle::ptsColliding(Triangle *outerT, Triangle *innerT) {
-    const glm::vec2 * outerPts = outerT->verts;
-    const glm::vec2 * innerPts = innerT->verts;
-    Collision * col = new Collision(innerT, outerT);
-    glm::vec2 sides[3];
-    for (int i = 0; i < 3; i++) {
-        //Normalized side of triangle, normalized to allow for projection later
-        sides[i] = glm::normalize(outerPts[(i + 1) % 3] - outerPts[i]);
-    }
-    for (int i = 0; i < 3; i++) {
-        glm::vec2 shortest;
-        float shortDist = 0.0f;
-        for (int j = 0; j < 3; j++) {
-            glm::vec2 side(sides[j]);
-            glm::vec2 ptFromSide = innerPts[i] - outerPts[j];
-            float distAlongSide = glm::dot(side, ptFromSide);
-            // Dot product will be positive if point is inside triangle
-            // for all sides
-            if (distAlongSide < 0.0f) {
-                //Not actually inside triangle
-                shortDist = 0.0f;
-                break;
-            }
-            //Side point is projection of point on side
-            glm::vec2 sidePt = outerPts[j] + side * distAlongSide;
-            glm::vec2 diff = sidePt - innerPts[i];
-            float maybe = glm::dot(diff, sides[(j + 1) % 3]);
-            if (maybe > 0.0f) {
-                //Not in triangle, diff to side should point in same directions as
-                // nearest two sides
-                shortDist = 0.0f;
-                break;
-            }
-            //Should just be dist^2 for speed
-            float dist = glm::length(diff);
-            if (j == 0 || dist < shortDist) {
-                shortest = diff;
-                shortDist = dist;
-            }
-        }
-        if (shortDist > 0.0f) {
-            //It is colliding, add minimum dist to collisions
-            col->addCollision(glm::vec2(innerPts[i]), shortest);
-        }
-    }
-    return col;
-}
-
-void capFloat(float& input, float max) {
-    if (input > max) {
-        input = max;
-    } else if (input < -max) {
-        input = -max;
-    }
-}
-
-
 //project v2 on v1
 glm::vec2 project(glm::vec2 v1, glm::vec2 v2) {
     return glm::dot(v2, glm::normalize(v1)) * glm::normalize(v1);
@@ -420,6 +281,14 @@ Collision * Triangle::testColliding(Triangle *other) {
     Collision * cols = new Collision(other, this);
     cols->addCollision(colPt, colVec);
     return cols;
+}
+
+void capFloat(float& input, float max) {
+    if (input > max) {
+        input = max;
+    } else if (input < -max) {
+        input = -max;
+    }
 }
 
 /*

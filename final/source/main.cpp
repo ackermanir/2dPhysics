@@ -106,7 +106,6 @@ int main(int argc, char *argv[]) {
 
     //Testing line collision code
 
-
     srand(6);
     glm::vec2 upLeft(-50.0f, 50.0f);
     glm::vec2 downRight(50.0f, -50.0f);;

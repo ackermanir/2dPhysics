@@ -29,12 +29,6 @@ public:
     Triangle(glm::vec2 &center, float width);
     void init(glm::vec2 &v0, glm::vec2 &v1, glm::vec2 &v2);
     //Static functions for collisions between triangles
-    static Collision * ptsColliding(Triangle *outerT, Triangle *innerT);
-    static glm::vec2
-    lineCollision(const glm::vec2 &a1, const glm::vec2 &a2,
-                  const glm::vec2 &b1, const glm::vec2 &b2, bool &none);
-    static void sidesColliding(Triangle *innerT, Triangle *outerT,
-                               Collision *cols);
     static void handleCollisions(Collision * col);
     static bool isCollision(Triangle *triA, Triangle *triB, glm::vec2 &colVec);
     static bool findCollisionPt(Triangle *triA, Triangle *triB,
