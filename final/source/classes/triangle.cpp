@@ -81,6 +81,7 @@ glm::vec2 Triangle::lineCollision(const glm::vec2 &a1, const glm::vec2 &a2,
     xNum /= denom;
     yNum /= denom;
 
+    //line collision must take place within the line segments
     if (!(((xNum > a1.x && xNum < a2.x) || (xNum < a1.x && xNum > a2.x)) &&
           ((xNum > b1.x && xNum < b2.x) || (xNum < b1.x && xNum > b2.x)) &&
           ((yNum > a1.y && yNum < a2.y) || (yNum < a1.y && yNum > a2.y)) &&
@@ -200,6 +201,29 @@ void capFloat(float& input, float max) {
 }
 
 /*
+  Returns all collisions between this triangle and other. All vectors
+  are in form of other - this; i.e. apply force of spring relative to
+  distance of vec2 in its direction to tail for this.
+
+  Returned Collision must be deleted!
+ */
+Collision * Triangle::testColliding(Triangle *other) {
+    Collision * cols = ptsColliding(other, this);
+    if (cols->cols.size() == 0) {
+        delete cols;
+        cols = ptsColliding(this, other);
+    } else {
+        Collision * cols2 = ptsColliding(this, other);
+        cols->mergeReverse(cols2);
+        delete cols2;
+    }
+    if (cols->cols.size() == 0) {
+        sidesColliding(this, other, cols);
+    }
+    return cols;
+}
+
+/*
   Fixes the collision specified by col by applying force to both the triangles
   t1 and t2 according to hookes law.
  */
@@ -225,50 +249,21 @@ void Triangle::handleCollisions(Collision * col) {
         // It would be great to replace with something cheaper
         bool ccw = glm::cross(glm::vec3(t1PerpForce, 0.0f), glm::vec3(t1Radius, 0.0f)).z > 0.0f;
         bool ccw2 = glm::cross(glm::vec3(t2PerpForce, 0.0f), glm::vec3(t2Radius, 0.0f)).z > 0.0f;
-        t1RotForce +=  (1.0f + ccw * -2.0f) * glm::length(t1PerpForce) / glm::length(t1Radius);
-        t2RotForce +=  (1.0f + ccw2 * -2.0f) * glm::length(t2PerpForce) / glm::length(t2Radius);
+        t1RotForce +=  (-1.0f + ccw * 2.0f) * glm::length(t1PerpForce) / glm::length(t1Radius);
+        t2RotForce +=  (-1.0f + ccw2 * 2.0f) * glm::length(t2PerpForce) / glm::length(t2Radius);
     }
 
-    capFloat(linForce[0], 0.5f);
-    capFloat(linForce[1], 0.5f);
-    capFloat(t1RotForce, 0.4f);
-    capFloat(t2RotForce, 0.4f);
-    // if (col->cols.size() > 0) {
-    //     std::cout << "Rot force: " << t1RotForce << "\n";
-    //     std::cout << "Lin force: " << linForce[0] << " "
-    //               << linForce[1] << "\n";
-    // }
+    // capFloat(linForce[0], 0.5f);
+    // capFloat(linForce[1], 0.5f);
+    // capFloat(t1RotForce, 0.4f);
+    // capFloat(t2RotForce, 0.4f);
     //Apply force to both triangles in opposite directions
     // dv = F * 1/m
     col->t1->velocity += linForce * col->t1->invMass;
     col->t2->velocity -= linForce * col->t2->invMass;
-    // 10 is magic constant, we are ignoring moment of inertia anyway
-    // Really just a factor that sways how much force rotational response should have
+    // last multiplier is due to fact that moment of inertia isn't precise
     col->t1->rotationalVelocity -= t1RotForce * col->t1->invMass;
     col->t2->rotationalVelocity -= t2RotForce * col->t2->invMass;
-}
-
-/*
-  Returns all collisions between this triangle and other. All vectors
-  are in form of other - this; i.e. apply force of spring relative to
-  distance of vec2 in its direction to tail for this.
-
-  Returned Collision must be deleted!
- */
-Collision * Triangle::testColliding(Triangle *other) {
-    Collision * cols = ptsColliding(other, this);
-    if (cols->cols.size() == 0) {
-        delete cols;
-        cols = ptsColliding(this, other);
-    } else {
-        Collision * cols2 = ptsColliding(this, other);
-        cols->mergeReverse(cols2);
-        delete cols2;
-    }
-    if (cols->cols.size() == 0) {
-        sidesColliding(this, other, cols);
-    }
-    return cols;
 }
 
 // Moves the triangle forward in time by delta applying gravity

@@ -8,6 +8,8 @@
 #include "grid.hpp"
 #include <omp.h>
 
+#define LINEAR 1
+
 
 /* Copy over inputs. Call initialSort */
 Grid::Grid(std::vector<Triangle *> trs, std::vector<Triangle *> stats, float trSize)
@@ -110,111 +112,114 @@ void Grid::rebalance(float stepTime) {
         tris[i]->timeStep(stepTime);
     }
 
-    // // Linear code
-    // for (unsigned int j = 0; j < tris.size(); j++) {
-    //     Triangle * tr1 = tris.at(j);
-    //     //collide with everyone less than you
-    //     for (unsigned int k = 0; k < j; k++) {
-    //         Triangle * tr2 = tris.at(k);
-    //         Collision * col = tr1->testColliding(tr2);
-    //         Triangle::handleCollisions(col);
-    //         // Here we cleanup collision as it was generated on heap
-    //         delete col;
-    //     }
-    //     //collide with statics
-    //     for (unsigned int k = 0; k < statics.size(); k++) {
-    //         Triangle * tr2 = statics.at(k);
-    //         Collision * col = tr1->testColliding(tr2);
-    //         Triangle::handleCollisions(col);
-    //         delete col;
-    //     }
-    // }
-
-    //Iterate over each row strip
-// #pragma omp parallel for ordered schedule(dynamic) num_threads(8)
-    for (int i = 0; i < indices.size(); i++) {
-        unsigned int off = indices[i];
-        unsigned int next = tris.size();
-        if (i != indices.size() - 1) {
-            //This handles case of there is no next, so go to tris.size()
-            next = indices[i+1];
-        }
-
-		unsigned int ownRowOffset = off;
-
-		unsigned int previousRowStartingOffset = 0;
-		if (i != 0) {
-			previousRowStartingOffset = indices[i - 1];
-		}
-		unsigned int nextRowStartingOffset = 0;
-		if (i != indices.size() - 1) {
-			nextRowStartingOffset = indices[i + 1];
-		}
-
-        //Iterate over each triangle
-        for (unsigned int j = off; j < next; j++) {
+    // Linear code
+    if (LINEAR) {
+        for (unsigned int j = 0; j < tris.size(); j++) {
             Triangle * tr1 = tris.at(j);
-
-			while (tris.at(ownRowOffset)->midPt()[0] < tr1->midPt()[0] - (2.887 * triSize)
-                   && ownRowOffset < j) {
-				ownRowOffset++;
-			}
-
-            //collide within own row
-			for (unsigned int k = ownRowOffset; k < j; k++) {
-				Triangle * tr2 = tris.at(k);
-				Collision * col = tr1->testColliding(tr2);
-				Triangle::handleCollisions(col);
-				delete col;
+            //collide with everyone less than you
+            for (unsigned int k = 0; k < j; k++) {
+                Triangle * tr2 = tris.at(k);
+                Collision * col = tr1->testColliding(tr2);
+                Triangle::handleCollisions(col);
+                // Here we cleanup collision as it was generated on heap
+                delete col;
             }
-
-            //Collide with statics
+            //collide with statics
             for (unsigned int k = 0; k < statics.size(); k++) {
                 Triangle * tr2 = statics.at(k);
                 Collision * col = tr1->testColliding(tr2);
                 Triangle::handleCollisions(col);
                 delete col;
             }
+        }
+    } else {
 
-            //collide with row above
-            if (i != 0) {
-				while (tris.at(previousRowStartingOffset)->midPt()[0] < tr1->midPt()[0] - (2.5 * triSize)
-                       && previousRowStartingOffset < off) {
-					previousRowStartingOffset++;
-				}
-
-                for (unsigned int k = previousRowStartingOffset; k < off; k++) {
-                    Triangle * tr2 = tris.at(k);
-					if (tr2->midPt()[0] > tr1->midPt()[0] + (2.5 * triSize)) {
-						break;
-					}
-
-					Collision * col = tr1->testColliding(tr2);
-					Triangle::handleCollisions(col);
-
-					delete col;
-                }
+        //Iterate over each row strip
+        // #pragma omp parallel for ordered schedule(dynamic) num_threads(8)
+        for (int i = 0; i < indices.size(); i++) {
+            unsigned int off = indices[i];
+            unsigned int next = tris.size();
+            if (i != indices.size() - 1) {
+                //This handles case of there is no next, so go to tris.size()
+                next = indices[i+1];
             }
 
-            //collide with row below
-            if (i != indices.size() - 1) {
-                unsigned int nextNext = tris.size();
-                if (i != indices.size() - 2) {
-                    nextNext = indices[i+2];
-                }
-				while (tris.at(nextRowStartingOffset)->midPt()[0] < tr1->midPt()[0] - (2.5 * triSize)
-                       && nextRowStartingOffset < nextNext - 1) {
-					nextRowStartingOffset++;
-				}
+            unsigned int ownRowOffset = off;
 
-                for (unsigned int k = next; k < nextNext; k++) {
+            unsigned int previousRowStartingOffset = 0;
+            if (i != 0) {
+                previousRowStartingOffset = indices[i - 1];
+            }
+            unsigned int nextRowStartingOffset = 0;
+            if (i != indices.size() - 1) {
+                nextRowStartingOffset = indices[i + 1];
+            }
+
+            //Iterate over each triangle
+            for (unsigned int j = off; j < next; j++) {
+                Triangle * tr1 = tris.at(j);
+
+                while (tris.at(ownRowOffset)->midPt()[0] < tr1->midPt()[0] - (2.887 * triSize)
+                       && ownRowOffset < j) {
+                    ownRowOffset++;
+                }
+
+                //collide within own row
+                for (unsigned int k = ownRowOffset; k < j; k++) {
                     Triangle * tr2 = tris.at(k);
-					if (tr2->midPt()[0] > tr1->midPt()[0] + (2.5 * triSize)) {
-						break;
-					}
                     Collision * col = tr1->testColliding(tr2);
                     Triangle::handleCollisions(col);
                     delete col;
+                }
+
+                //Collide with statics
+                for (unsigned int k = 0; k < statics.size(); k++) {
+                    Triangle * tr2 = statics.at(k);
+                    Collision * col = tr1->testColliding(tr2);
+                    Triangle::handleCollisions(col);
+                    delete col;
+                }
+
+                //collide with row above
+                if (i != 0) {
+                    while (tris.at(previousRowStartingOffset)->midPt()[0] < tr1->midPt()[0] - (2.5 * triSize)
+                           && previousRowStartingOffset < off) {
+                        previousRowStartingOffset++;
+                    }
+
+                    for (unsigned int k = previousRowStartingOffset; k < off; k++) {
+                        Triangle * tr2 = tris.at(k);
+                        if (tr2->midPt()[0] > tr1->midPt()[0] + (2.5 * triSize)) {
+                            break;
+                        }
+
+                        Collision * col = tr1->testColliding(tr2);
+                        Triangle::handleCollisions(col);
+
+                        delete col;
+                    }
+                }
+
+                //collide with row below
+                if (i != indices.size() - 1) {
+                    unsigned int nextNext = tris.size();
+                    if (i != indices.size() - 2) {
+                        nextNext = indices[i+2];
+                    }
+                    while (tris.at(nextRowStartingOffset)->midPt()[0] < tr1->midPt()[0] - (2.5 * triSize)
+                           && nextRowStartingOffset < nextNext - 1) {
+                        nextRowStartingOffset++;
+                    }
+
+                    for (unsigned int k = next; k < nextNext; k++) {
+                        Triangle * tr2 = tris.at(k);
+                        if (tr2->midPt()[0] > tr1->midPt()[0] + (2.5 * triSize)) {
+                            break;
+                        }
+                        Collision * col = tr1->testColliding(tr2);
+                        Triangle::handleCollisions(col);
+                        delete col;
+                    }
                 }
             }
         }

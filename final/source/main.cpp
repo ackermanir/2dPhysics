@@ -114,6 +114,16 @@ int main(int argc, char *argv[]) {
     // t->invMass = 1.0f;
     // tris.push_back(t);
 
+    // Triangle *t = new Triangle(glm::vec2(.2,5), 5.0);
+    // t->invMass = 1.0f;
+    // tris.push_back(t);
+
+    // Triangle *t2 = new Triangle(glm::vec2(0,11), 5.0);
+    // t2->invMass = 1.0f;
+    // tris.push_back(t2);
+
+    // Triangle base = Triangle(glm::vec2(-60.0f, -0.0f), glm::vec2(60.0f, -0.0f), glm::vec2(0.0f, -120.0f));
+
     //Testing line collision code
 
 
@@ -135,7 +145,7 @@ int main(int argc, char *argv[]) {
     }
 
     //Base triangle
-    Triangle base = Triangle(glm::vec2(-60.0f, -60.0f), glm::vec2(60.0f, -60.0f), glm::vec2(0.0f, -120.0f));
+    Triangle base = Triangle(glm::vec2(-60.0f, -53.0f), glm::vec2(60.0f, -53.0f), glm::vec2(0.0f, -120.0f));
     // Inverse mass of 0 means infinite mass a.k.a. static object
     base.invMass = 0.0f;
 	std::vector<Triangle *> statics = std::vector<Triangle *>();
@@ -179,8 +189,8 @@ int main(int argc, char *argv[]) {
         //bad at 0.001f barely
         // bad at 0.0005f;
         // seemed ok at 0.0001f;
-        float stepTime = 0.0001f;
-        for (int i = 0; i < 5; i++) {
+        float stepTime = 0.0005f;
+        for (int i = 0; i < 6; i++) {
             gr.rebalance(stepTime);
         }
 
