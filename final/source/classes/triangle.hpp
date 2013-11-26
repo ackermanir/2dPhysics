@@ -31,11 +31,12 @@ public:
     //Static functions for collisions between triangles
     static Collision * ptsColliding(Triangle *outerT, Triangle *innerT);
     static glm::vec2
-    Triangle::lineCollision(const glm::vec2 &a1, const glm::vec2 &a2,
-                            const glm::vec2 &b1, const glm::vec2 &b2, bool &none);
-    static void Triangle::sidesColliding(Triangle *innerT, Triangle *outerT,
-                                         Collision *cols);
+    lineCollision(const glm::vec2 &a1, const glm::vec2 &a2,
+                  const glm::vec2 &b1, const glm::vec2 &b2, bool &none);
+    static void sidesColliding(Triangle *innerT, Triangle *outerT,
+                               Collision *cols);
     static void handleCollisions(Collision * col);
+    static bool isCollision(Triangle *triA, Triangle *triB, glm::vec2 &colVec);
     // Return all collisions between this and other triangle
     Collision * Triangle::testColliding(Triangle *other);
 	void timeStep(float delta);

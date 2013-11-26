@@ -200,6 +200,65 @@ void capFloat(float& input, float max) {
     }
 }
 
+
+//project v2 on v1
+glm::vec2 project(glm::vec2 v1, glm::vec2 v2) {
+    return glm::dot(v2, glm::normalize(v1)) * glm::normalize(v1);
+}
+
+/*
+  Returns true if there is  a collision between objects using SAT collision detection.
+  If there is a collision, colVec will contain the minimal vector to resolve collision.
+  There is no information of where the collision occurs in this algo.
+ */
+bool Triangle::isCollision(Triangle *triA, Triangle *triB, glm::vec2 &colVec) {
+    const glm::vec2 * ptsA = triA->verts;
+    const glm::vec2 * ptsB = triB->verts;
+    glm::vec2 midA = triA->midPt();
+    glm::vec2 midB = triB->midPt();
+    glm::vec2 norms[6];
+    //All 6 norms of the triangles, first 3 are from outer triangle, last are from inner triangle
+    for (int i = 0; i < 3; i++) {
+        norms[i] = project(ptsB[(i + 1) % 3] - ptsB[i], midB - ptsB[i]);
+        norms[i] = glm::normalize(norms[i] - (midB - ptsB[i]));
+
+        norms[i+3] = project(ptsA[(i + 1) % 3] - ptsA[i], midA - ptsA[i]);
+        norms[i+3] = glm::normalize(norms[i+3] - (midA - ptsA[i]));
+    }
+    float minDepth = FLT_MAX;
+    for (int j = 0; j < 6; j++) {
+        glm::vec2 normal = norms[j];
+        float minA = FLT_MAX;
+        float maxA = -FLT_MAX;
+        float minB = FLT_MAX;
+        float maxB = -FLT_MAX;
+        for (int i = 0; i < 3; i++) {
+            float projDist = glm::dot(ptsA[i], normal);
+            if (projDist < minA) { minA = projDist;}
+            if (projDist > maxA) { maxA = projDist;}
+            projDist = glm::dot(ptsB[i], normal);
+            if (projDist < minB) { minB = projDist;}
+            if (projDist > maxB) { maxB = projDist;}
+        }
+
+        // opposite of if ((minA < maxB) || (maxA > minB)) {
+        if ((minA > maxB) || (maxA < minB)) {
+            return false;
+        } else {
+            if (minA < maxB && (maxB - minA < minDepth)) {
+                colVec = norms[j] * maxB - minA;
+            } else if (maxA > minB && (maxA - minB < minDepth)) {
+                colVec = norms[j] * maxA - minB;
+            }
+        }
+    }
+    return true;
+}
+
+// glm::vec2 findCollisionPt(
+
+
+
 /*
   Returns all collisions between this triangle and other. All vectors
   are in form of other - this; i.e. apply force of spring relative to
@@ -208,6 +267,9 @@ void capFloat(float& input, float max) {
   Returned Collision must be deleted!
  */
 Collision * Triangle::testColliding(Triangle *other) {
+    if (! Triangle::isCollision(this, other, glm::vec2())) {
+        return new Collision(this, other);
+    }
     Collision * cols = ptsColliding(other, this);
     if (cols->cols.size() == 0) {
         delete cols;
@@ -216,9 +278,6 @@ Collision * Triangle::testColliding(Triangle *other) {
         Collision * cols2 = ptsColliding(this, other);
         cols->mergeReverse(cols2);
         delete cols2;
-    }
-    if (cols->cols.size() == 0) {
-        sidesColliding(this, other, cols);
     }
     return cols;
 }
