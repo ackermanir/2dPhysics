@@ -165,11 +165,10 @@ int main(int argc, char *argv[]) {
         double begEngine = glfwGetTime();
 
         //Simulation/collision
-        //bad at 0.001f barely
-        // bad at 0.0005f;
-        // seemed ok at 0.0001f;
+        // messy/bad at 0.001f with 900
+        // ok at 0.0005f; up to 900
         float stepTime = 0.0005f;
-        for (int i = 0; i < 6; i++) {
+        for (int i = 0; i < 5; i++) {
             gr.rebalance(stepTime);
         }
 

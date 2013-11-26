@@ -135,7 +135,7 @@ void Grid::rebalance(float stepTime) {
     } else {
 
         //Iterate over each row strip
-// #pragma omp parallel for ordered schedule(dynamic) num_threads(1)
+// #pragma omp parallel for ordered schedule(dynamic) num_threads(8)
         for (int i = 0; i < indices.size(); i++) {
             unsigned int off = indices[i];
             unsigned int next = tris.size();
