@@ -47,8 +47,8 @@ Triangle::Triangle(glm::vec2 &center, float width) {
     //sqrt(3)/6
     float ratio = 0.28867513459481288225457439025098f;
     glm::vec2 top = glm::vec2(center[0], center[1] + (1.0f - ratio) * width);
-    glm::vec2 right = glm::vec2(center[0] + width / 2.0f, center[1] - ratio * width);
     glm::vec2 left = glm::vec2(center[0] - width / 2.0f, center[1] - ratio * width);
+    glm::vec2 right = glm::vec2(center[0] + width / 2.0f, center[1] - ratio * width);
     //want counterclockwise for openGL standards
     init(top, left, right);
 }

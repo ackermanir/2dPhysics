@@ -31,10 +31,12 @@ public:
     int partition(unsigned int left, unsigned int right, unsigned int pivot);
     void quicksort(unsigned int left, unsigned int right);
 
-    //Timestep each triangle and insertSort into order
-    void rebalance(float stepTime);
-
-    void fixCollisions(void);
+    //Timestep over all triangles and simulate forces
+    void stepAll(float stepTime);
+    //Collide all triangles together
+    void rebalance(void);
+    //Iterate over strips and do collisions
+    void itterateOnStrip(int i);
 
     void print(void);
 

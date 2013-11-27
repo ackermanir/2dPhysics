@@ -109,7 +109,7 @@ int main(int argc, char *argv[]) {
     srand(6);
     glm::vec2 upLeft(-50.0f, 50.0f);
     glm::vec2 downRight(50.0f, -50.0f);;
-    int divs = 30;
+    int divs = 60;
     float width = (downRight[0] - upLeft[0]) / divs / 2.0f;
     for (int i = 0; i < divs; i++) {
         float port = (downRight[0] - upLeft[0]) / divs;
@@ -138,39 +138,38 @@ int main(int argc, char *argv[]) {
 	GLuint mvpId = glGetUniformLocation(programID, "mvpMat");
 
 	//time keeping
-	double oldTime = glfwGetTime();
-	double lastDispTime = glfwGetTime();
 	double engineTime = 0.0;
+	double midEngineTime = 0.0;
 	int numFrames = 0;
 
 	do{
         //****************************************************
         // FPS / time calculations
         //****************************************************
-        double curTime = glfwGetTime();
-        float deltaTime = (float)(curTime - oldTime);
-        oldTime = curTime;
-
         numFrames++;
         if ( numFrames > 9 ){
             double perEngineTime = engineTime / 10 * 1000;
+            double midEng = midEngineTime / engineTime * 100;
             std::cout << " Engine: " << perEngineTime << "ms per frame\n";
+            std::cout << " Collis: " << midEng << "% per frame\n\n";
             engineTime = 0.0;
+            midEngineTime = 0.0;
             numFrames = 0;
-            lastDispTime = curTime;
         }
         //****************************************************
         // Physics engine
         //****************************************************
         double begEngine = glfwGetTime();
+        double midEngine;
 
         //Simulation/collision
         // messy/bad at 0.001f with 900
         // ok at 0.0005f; up to 900
         float stepTime = 0.0005f;
-        for (int i = 0; i < 5; i++) {
-            gr.rebalance(stepTime);
-        }
+        gr.stepAll(stepTime);
+        gr.initialSort();
+        midEngine = glfwGetTime(); //timestamp again to see collisions
+        gr.rebalance();
 
         // Change fov, allowing user to move
         // Use - or 0 keys
@@ -178,6 +177,7 @@ int main(int argc, char *argv[]) {
 
         double endEngine = glfwGetTime();
         engineTime += endEngine - begEngine;
+        midEngineTime += endEngine - midEngine;
 
         //****************************************************
         // OpenGL rendering
