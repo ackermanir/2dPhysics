@@ -43,12 +43,13 @@ Triangle::Triangle(glm::vec2 &v0, glm::vec2 &v1, glm::vec2 &v2) {
     init(v0, v1, v2);
 }
 
+//Width is the length from center to any corner
 Triangle::Triangle(glm::vec2 &center, float width) {
-    //sqrt(3)/6
-    float ratio = 0.28867513459481288225457439025098f;
-    glm::vec2 top = glm::vec2(center[0], center[1] + (1.0f - ratio) * width);
-    glm::vec2 left = glm::vec2(center[0] - width / 2.0f, center[1] - ratio * width);
-    glm::vec2 right = glm::vec2(center[0] + width / 2.0f, center[1] - ratio * width);
+    //height = 3/2 * width. Side = sqrt(3) * width
+    float sqR = 1.7320508075688772935274463415058f;
+    glm::vec2 top = glm::vec2(center[0], center[1] + width);
+    glm::vec2 left = glm::vec2(center[0] - (sqR / 2.0f), center[1] - (width / 2.0f));
+    glm::vec2 right = glm::vec2(center[0] + (sqR / 2.0f), center[1] - (width / 2.0f));
     //want counterclockwise for openGL standards
     init(top, left, right);
 }

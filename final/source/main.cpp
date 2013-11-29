@@ -23,6 +23,8 @@
 #include <cstdlib> //for srand
 #include <omp.h>
 
+#include "pthread.h"
+
 using namespace std;
 
 //Header for helpers
@@ -40,9 +42,9 @@ int main(int argc, char *argv[]) {
 	//collection of triangles in scene
 	std::vector<Triangle *> tris = std::vector<Triangle *>();
 	//Location of camera in the scene
-	glm::vec3 camLoc(0.0f, 0.0f, 99.0f);
+	glm::vec3 camLoc(0.0f, -250.0f, 750.0f);
     //Camera view matrix
-    glm::mat4 view = glm::lookAt(camLoc, glm::vec3(0,0,0), glm::vec3(0,1,0));
+    glm::mat4 view = glm::lookAt(camLoc, glm::vec3(0,-250.0f,0), glm::vec3(0,1,0));
 
 	// Initialise GLFW
 	if(!glfwInit()) {
@@ -107,10 +109,10 @@ int main(int argc, char *argv[]) {
     //Testing line collision code
 
     srand(6);
-    glm::vec2 upLeft(-50.0f, 50.0f);
-    glm::vec2 downRight(50.0f, -50.0f);;
-    int divs = 60;
-    float width = (downRight[0] - upLeft[0]) / divs / 2.0f;
+    glm::vec2 upLeft(-500.0f, 500.0f);
+    glm::vec2 downRight(500.0f, -500.0f);;
+    int divs = 200;
+    float width = (downRight[0] - upLeft[0]) / divs / 4.0f;
     for (int i = 0; i < divs; i++) {
         float port = (downRight[0] - upLeft[0]) / divs;
         for (int j = 0; j < divs; j++) {
@@ -124,13 +126,13 @@ int main(int argc, char *argv[]) {
     }
 
     //Base triangle
-    Triangle base = Triangle(glm::vec2(-60.0f, -53.0f), glm::vec2(0.0f, -120.0f), glm::vec2(60.0f, -53.0f));
+    Triangle base = Triangle(glm::vec2(-600.0f, -530.0f), glm::vec2(0.0f, -1200.0f), glm::vec2(600.0f, -530.0f));
     // Inverse mass of 0 means infinite mass a.k.a. static object
     base.invMass = 0.0f;
 	std::vector<Triangle *> statics = std::vector<Triangle *>();
     statics.push_back(&base);
 
-    Grid gr(tris, statics, width);
+    Grid gr(tris, statics, width * 2.0f);
 
 	//****************************************************
 	// Setup uniforms

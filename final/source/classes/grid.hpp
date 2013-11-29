@@ -35,13 +35,21 @@ public:
     void stepAll(float stepTime);
     //Collide all triangles together
     void rebalance(void);
+
+    static void *pThreadStrip(void * input);
     //Iterate over strips and do collisions
-    void itterateOnStrip(int i);
+    void *itterateOnStrip(int start, int size);
 
     void print(void);
 
     //Cleans up
 	~Grid(void);
 };
+
+struct PThreadInfo {
+    int size;
+    int start;
+    Grid* grid;
+} ;
 
 #endif
