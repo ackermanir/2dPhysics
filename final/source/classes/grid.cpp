@@ -12,10 +12,16 @@
 #define LINEAR 0
 #define NUMTHREADS 1
 
-
 /* Copy over inputs. Call initialSort */
-Grid::Grid(std::vector<Triangle *> trs, std::vector<Triangle *> stats, float trSize)
-    :tris(trs), statics(stats) {
+Grid::Grid(std::vector<Triangle> &trs, std::vector<Triangle> &stats, float trSize) {
+    tris = std::vector<Triangle *>();
+    for (unsigned int i = 0; i < trs.size(); i++) {
+        tris.push_back(&trs[i]);
+    }
+    statics = std::vector<Triangle *>();
+    for (unsigned int i = 0; i < stats.size(); i++) {
+        statics.push_back(&stats[i]);
+    }
     indices = std::vector<unsigned int>();
     triSize = trSize;
     initialSort();
@@ -107,11 +113,12 @@ void Grid::initialSort(void) {
 
 void *Grid::pThreadStrip(void * input) {
     PThreadInfo* pti = (PThreadInfo *)input;
-    return (pti->grid)->itterateOnStrip(pti->start, pti->size);
+    return (pti->grid)->itterateOnStrip(pti->start, pti->size, pti->stride);
 }
 
-void *Grid::itterateOnStrip(int start, int size) {
-    for (int i = start; i < start + size; i++) {
+void *Grid::itterateOnStrip(int start, int size, int stride) {
+#pragma omp parallel for ordered schedule(dynamic) num_threads(8)
+    for (int i = start; i < start + size; i += stride) {
         //Iterate over each row strip
         unsigned int off = indices[i];
         unsigned int next = tris.size();
@@ -139,37 +146,44 @@ void *Grid::itterateOnStrip(int start, int size) {
 
         //Iterate over each triangle
         for (unsigned int j = off; j < next; j++) {
-            Triangle * tr1 = tris.at(j);
+            Triangle tr1 = *tris.at(j);
 
-            while (orlMid < (tr1->midPt()[0] - triSize)) {
+            while (orlMid < (tr1.midPt()[0] - triSize)) {
                 ownRowLow++;
                 orlMid = tris.at(ownRowLow)->midPt()[0];
             }
             //collide within own row
             for (unsigned int k = ownRowLow; k < j; k++) {
-                Triangle * tr2 = tris.at(k);
-                tr1->testColliding(tr2);
+                Triangle tr2 = *tris.at(k);
+                if (tr1.collide(tr2)) {
+                    *tris[k] = tr2;
+                }
             }
 
             //Collide with statics
             for (unsigned int k = 0; k < statics.size(); k++) {
-                Triangle * tr2 = statics.at(k);
-                tr1->testColliding(tr2);
+                Triangle tr2 = *statics.at(k);
+                if (tr1.collide(tr2)) {
+                    *statics[k] = tr2;
+                }
             }
 
             //collide with row below
             if (i != indices.size() - 1) {
-                while (nrlMid < (tr1->midPt()[0] - triSize)
+                while (nrlMid < (tr1.midPt()[0] - triSize)
                        && nextRowLow < (tris.size() - 1)) {
                     nextRowLow++;
                     nrlMid = tris.at(nextRowLow)->midPt()[0];
                 }
 
                 for (unsigned int k = nextRowLow; k < nextNext; k++) {
-                    Triangle * tr2 = tris.at(k);
-                    tr1->testColliding(tr2);
+                    Triangle tr2 = *tris.at(k);
+                    if (tr1.collide(tr2)) {
+                        *tris[k] = tr2;
+                    }
                 }
             }
+            *tris[j] = tr1;
         }
     }
     return NULL;
@@ -186,35 +200,42 @@ void Grid::stepAll(float stepTime) {
 void Grid::rebalance() {
     if (LINEAR) {
         for (unsigned int j = 0; j < tris.size(); j++) {
-            Triangle * tr1 = tris.at(j);
+            Triangle tr1 = *tris.at(j);
             //collide with everyone less than you
             for (unsigned int k = 0; k < j; k++) {
-                Triangle * tr2 = tris.at(k);
-                tr1->testColliding(tr2);
+                Triangle tr2 = *tris.at(k);
+                if (tr1.collide(tr2)) {
+                    *tris[k] = tr2;
+                }
             }
             //collide with statics
             for (unsigned int k = 0; k < statics.size(); k++) {
-                Triangle * tr2 = statics.at(k);
-                tr1->testColliding(tr2);
+                Triangle tr2 = *statics.at(k);
+                if (tr1.collide(tr2)) {
+                    *statics[k] = tr2;
+                }
             }
+            *tris[j] = tr1;
         }
         return;
     }
 
     // single thread version
-    itterateOnStrip(0, indices.size());
+    itterateOnStrip(0, indices.size(), 2);
+    itterateOnStrip(1, indices.size() - 1, 2);
 
     // int size = indices.size() / NUMTHREADS;
     // pthread_t tid[NUMTHREADS];
     // //contains int of start, then int of length
     // PThreadInfo thrd_info[NUMTHREADS];
-    // for (int i = 0; i < NUMTHREADS; i += 2) {
+    // for (int i = 0; i < NUMTHREADS; i++) {
     //     thrd_info[i].start = i * size;
     //     if (i == 7) {
     //         size = indices.size() - (size * 7);
     //     }
     //     thrd_info[i].size = size;
     //     thrd_info[i].grid = this;
+    //     thrd_info[i].stride = 2;
     //     pthread_create(&tid[i], 0, &Grid::pThreadStrip, (void*)&thrd_info[i]);
     // }
 
@@ -224,13 +245,14 @@ void Grid::rebalance() {
 
     // size = (indices.size() - 1) / NUMTHREADS;
 
-    // for (int i = 1; i < NUMTHREADS; i += 2) {
+    // for (int i = 1; i < NUMTHREADS; i++) {
     //     thrd_info[i].start = i * size;
     //     if (i == 7) {
-    //         size = indices.size() - (size * 7);
+    //         size = indices.size() - (size * 7) - 1;
     //     }
     //     thrd_info[i].size = size;
     //     thrd_info[i].grid = this;
+    //     thrd_info[i].stride = 2;
     //     pthread_create(&tid[i], 0, &Grid::pThreadStrip, (void*)&thrd_info[i]);
     // }
 
@@ -271,6 +293,9 @@ void Grid::print(void) {
 Grid::~Grid(void) {
 }
 
+
+// To Try: midpiont being part of triangle so we don't
+// have to continually calculate
 
 
 /// Let's plan for the GPU

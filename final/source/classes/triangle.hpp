@@ -28,14 +28,24 @@ public:
     //Equilateral triangle construct
     Triangle(glm::vec2 &center, float width);
     void init(glm::vec2 &v0, glm::vec2 &v1, glm::vec2 &v2);
-    //Static functions for collisions between triangles
-    void handleCollisions(Triangle *other, glm::vec2 colPt, glm::vec2 sprVec);
-    static bool isCollision(Triangle *triA, Triangle *triB, glm::vec2 &colVec);
-    static bool findCollisionPt(Triangle *triA, Triangle *triB,
-                                glm::vec2 colVec, glm::vec2 &colPt);
+
+    ///
+    // Collision code
+    ///
     // Find collisions and resolve between this and other
-    void testColliding(Triangle *other);
+    bool collide(Triangle &other);
+
+    bool aabbCollision(Triangle &other);
+    bool isCollision(Triangle &other, glm::vec2 &colVec);
+    bool findCollisionPt(Triangle &other, glm::vec2 colVec, glm::vec2 &colPt);
+    //Static functions for collisions between triangles
+    void handleCollisions(Triangle &other, glm::vec2 colPt, glm::vec2 sprVec);
     void bestEdge(glm::vec2 norm, glm::vec2 &chosenPt, glm::vec2 *edge);
+
+    ///
+    ///
+    ///
+
 	void timeStep(float delta);
     glm::vec2 midPt(void);
     // OpenGL functions

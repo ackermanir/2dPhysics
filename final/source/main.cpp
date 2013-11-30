@@ -40,7 +40,7 @@ using namespace std;
 int main(int argc, char *argv[]) {
 
 	//collection of triangles in scene
-	std::vector<Triangle *> tris = std::vector<Triangle *>();
+	std::vector<Triangle> tris = std::vector<Triangle>();
 	//Location of camera in the scene
 	glm::vec3 camLoc(0.0f, -250.0f, 750.0f);
     //Camera view matrix
@@ -96,22 +96,10 @@ int main(int argc, char *argv[]) {
 	// Load in objects to world
 	//****************************************************
 
-    //Testing line collision code
-
-    // Triangle *t = new Triangle(glm::vec2(.2,5), 5.0);
-    // t->invMass = 0.0f;
-    // tris.push_back(t);
-    // Triangle *t2 = new Triangle(glm::vec2(0,11), 5.0);
-    // t2->invMass = 1.0f;
-    // tris.push_back(t2);
-    // Triangle base = Triangle(glm::vec2(-60.0f, -0.0f), glm::vec2(0.0f, -120.0f), glm::vec2(60.0f, -0.0f));
-
-    //Testing line collision code
-
     srand(6);
     glm::vec2 upLeft(-500.0f, 500.0f);
     glm::vec2 downRight(500.0f, -500.0f);
-    int divs = 100;
+    int divs = 80;
     float width = (downRight[0] - upLeft[0]) / divs / 3.0f;
     for (int i = 0; i < divs; i++) {
         float port = (downRight[0] - upLeft[0]) / divs;
@@ -119,8 +107,8 @@ int main(int argc, char *argv[]) {
             float centerX = upLeft[0] + port * i + (float)rand() / RAND_MAX;
             float centerY = downRight[1] + port * j + (float)rand() / RAND_MAX;
             glm::vec2 center(centerX, centerY);
-            Triangle *t = new Triangle(center, width);
-            t->invMass = 1.0f;
+            Triangle t = Triangle(center, width);
+            t.invMass = 1.0f;
             tris.push_back(t);
         }
     }
@@ -129,8 +117,8 @@ int main(int argc, char *argv[]) {
     Triangle base = Triangle(glm::vec2(-600.0f, -530.0f), glm::vec2(0.0f, -1200.0f), glm::vec2(600.0f, -530.0f));
     // Inverse mass of 0 means infinite mass a.k.a. static object
     base.invMass = 0.0f;
-	std::vector<Triangle *> statics = std::vector<Triangle *>();
-    statics.push_back(&base);
+	std::vector<Triangle> statics = std::vector<Triangle>();
+    statics.push_back(base);
 
     Grid gr(tris, statics, width * 2.0f);
 
@@ -149,7 +137,7 @@ int main(int argc, char *argv[]) {
         // FPS / time calculations
         //****************************************************
         numFrames++;
-        if ( numFrames > 9 ){
+        if ( numFrames > 10 ){
             double perEngineTime = engineTime / 10 * 1000;
             double midEng = midEngineTime / engineTime * 100;
             std::cout << " Engine: " << perEngineTime << "ms per frame\n";
@@ -197,11 +185,11 @@ int main(int argc, char *argv[]) {
 
         //Go over each Triangle and have them draw themselves
         for (unsigned int i = 0; i < tris.size(); i++) {
-            tris[i]->drawSelf();
+            tris[i].drawSelf();
         }
 
         for (unsigned int i = 0; i < statics.size(); i++) {
-            statics[i]->drawSelf();
+            statics[i].drawSelf();
         }
 
         // Swap buffers

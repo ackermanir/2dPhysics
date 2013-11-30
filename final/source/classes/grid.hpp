@@ -22,7 +22,7 @@ public:
     float high;
     float low;
 
-    Grid(std::vector<Triangle *> trs, std::vector<Triangle *> stats, float trSize);
+    Grid(std::vector<Triangle> &trs, std::vector<Triangle> &stats, float trSize);
 
     //quickSort over all triangles
     void initialSort(void);
@@ -38,7 +38,7 @@ public:
 
     static void *pThreadStrip(void * input);
     //Iterate over strips and do collisions
-    void *itterateOnStrip(int start, int size);
+    void *itterateOnStrip(int start, int size, int stride);
 
     void print(void);
 
@@ -49,6 +49,7 @@ public:
 struct PThreadInfo {
     int size;
     int start;
+    int stride;
     Grid* grid;
 } ;
 
