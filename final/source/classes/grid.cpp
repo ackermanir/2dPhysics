@@ -148,17 +148,13 @@ void *Grid::itterateOnStrip(int start, int size) {
             //collide within own row
             for (unsigned int k = ownRowLow; k < j; k++) {
                 Triangle * tr2 = tris.at(k);
-                Collision * col = tr1->testColliding(tr2);
-                Triangle::handleCollisions(col);
-                delete col;
+                tr1->testColliding(tr2);
             }
 
             //Collide with statics
             for (unsigned int k = 0; k < statics.size(); k++) {
                 Triangle * tr2 = statics.at(k);
-                Collision * col = tr1->testColliding(tr2);
-                Triangle::handleCollisions(col);
-                delete col;
+                tr1->testColliding(tr2);
             }
 
             //collide with row below
@@ -171,13 +167,12 @@ void *Grid::itterateOnStrip(int start, int size) {
 
                 for (unsigned int k = nextRowLow; k < nextNext; k++) {
                     Triangle * tr2 = tris.at(k);
-                    Collision * col = tr1->testColliding(tr2);
-                    Triangle::handleCollisions(col);
-                    delete col;
+                    tr1->testColliding(tr2);
                 }
             }
         }
     }
+    return NULL;
 }
 
 // Simulate all triangles falling
@@ -195,17 +190,12 @@ void Grid::rebalance() {
             //collide with everyone less than you
             for (unsigned int k = 0; k < j; k++) {
                 Triangle * tr2 = tris.at(k);
-                Collision * col = tr1->testColliding(tr2);
-                Triangle::handleCollisions(col);
-                // Here we cleanup collision as it was generated on heap
-                delete col;
+                tr1->testColliding(tr2);
             }
             //collide with statics
             for (unsigned int k = 0; k < statics.size(); k++) {
                 Triangle * tr2 = statics.at(k);
-                Collision * col = tr1->testColliding(tr2);
-                Triangle::handleCollisions(col);
-                delete col;
+                tr1->testColliding(tr2);
             }
         }
         return;

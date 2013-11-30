@@ -110,9 +110,9 @@ int main(int argc, char *argv[]) {
 
     srand(6);
     glm::vec2 upLeft(-500.0f, 500.0f);
-    glm::vec2 downRight(500.0f, -500.0f);;
-    int divs = 200;
-    float width = (downRight[0] - upLeft[0]) / divs / 4.0f;
+    glm::vec2 downRight(500.0f, -500.0f);
+    int divs = 100;
+    float width = (downRight[0] - upLeft[0]) / divs / 3.0f;
     for (int i = 0; i < divs; i++) {
         float port = (downRight[0] - upLeft[0]) / divs;
         for (int j = 0; j < divs; j++) {
@@ -168,10 +168,12 @@ int main(int argc, char *argv[]) {
         // messy/bad at 0.001f with 900
         // ok at 0.0005f; up to 900
         float stepTime = 0.0005f;
-        gr.stepAll(stepTime);
-        gr.initialSort();
-        midEngine = glfwGetTime(); //timestamp again to see collisions
-        gr.rebalance();
+        for (int i = 0; i < 10; i++) {
+            gr.stepAll(stepTime);
+            gr.initialSort();
+            midEngine = glfwGetTime(); //timestamp again to see collisions
+            gr.rebalance();
+        }
 
         // Change fov, allowing user to move
         // Use - or 0 keys

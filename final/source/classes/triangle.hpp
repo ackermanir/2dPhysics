@@ -29,12 +29,12 @@ public:
     Triangle(glm::vec2 &center, float width);
     void init(glm::vec2 &v0, glm::vec2 &v1, glm::vec2 &v2);
     //Static functions for collisions between triangles
-    static void handleCollisions(Collision * col);
+    void handleCollisions(Triangle *other, glm::vec2 colPt, glm::vec2 sprVec);
     static bool isCollision(Triangle *triA, Triangle *triB, glm::vec2 &colVec);
     static bool findCollisionPt(Triangle *triA, Triangle *triB,
                                 glm::vec2 colVec, glm::vec2 &colPt);
-    // Return all collisions between this and other triangle
-    Collision * testColliding(Triangle *other);
+    // Find collisions and resolve between this and other
+    void testColliding(Triangle *other);
     void bestEdge(glm::vec2 norm, glm::vec2 &chosenPt, glm::vec2 *edge);
 	void timeStep(float delta);
     glm::vec2 midPt(void);
@@ -46,23 +46,6 @@ public:
 	void print(void);
     //Cleans up opengl buffer
 	~Triangle(void);
-};
-
-
-class Collision {
-public:
-    // Vector of all collisions between t1 and t2
-    // Pair is in form <collision pt, spring vector>
-    std::vector<std::pair<glm::vec2, glm::vec2>> cols;
-    //T1 is triangle collision is applied from
-    Triangle * t1;
-    Triangle * t2;
-
-    Collision(Triangle * tr1, Triangle * tr2);
-    void addCollision(glm::vec2 &point, glm::vec2 &dir);
-    // Adds points from other collision with spring direction reversed
-    void mergeReverse(Collision *other);
-    void print(void);
 };
 
 #endif
