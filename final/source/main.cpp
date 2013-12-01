@@ -32,13 +32,32 @@ using namespace std;
 #include "triangle.hpp"
 #include "grid.hpp"
 
+// Funtion that prints to stdout or a file the state at each timestep
+int printTimestep(int framenum, ofstream * myfile, std::vector<Triangle *> tris) {
+	std::stringstream ss (std::stringstream::in | std::stringstream::out);
+	ss << framenum;
+	for (int i = 0; i < tris.size(); i++) {
+        ss << "\t" << tris[i]->coords();
+    }
+	ss << "\n";
+	*myfile << ss.str();
+	return 0;
+}
+
 //****************************************************
 // Main loop
 //****************************************************
 int main(int argc, char *argv[]) {
 
+	ofstream outStream;
+	// if debugging output file is present
+	if (argv[2]) {
+		outStream.open(argv[2]);
+	}
+
 	//collection of triangles in scene
 	std::vector<Triangle *> tris = std::vector<Triangle *>();
+	std::vector<Triangle *> statics = std::vector<Triangle *>();
 	//Location of camera in the scene
 	glm::vec3 camLoc(0.0f, 0.0f, 99.0f);
     //Camera view matrix
@@ -90,6 +109,28 @@ int main(int argc, char *argv[]) {
 	GLuint programID = LoadShaders( "shaders/simple.vert.glsl",
 									"shaders/simple.frag.glsl");
 
+
+	//****************************************************
+	// Read in the input file and create orresponding triangles
+	//****************************************************
+	ifstream fin;
+	fin.open(argv[1]);
+	if (!fin.good())
+		return 1;
+
+	while (!fin.eof())
+	{
+		char buf[512];
+		fin.getline(buf, 512);
+		float x = ::atof(strtok(buf, " "));
+		float y = ::atof(strtok(0, " "));
+		glm::vec2 center = glm::vec2(x, y);
+		float width = ::atof(strtok(0, " "));
+		Triangle *t = new Triangle(center, width);
+		t->invMass = 1.0f;
+		tris.push_back(t);
+	}
+
 	//****************************************************
 	// Load in objects to world
 	//****************************************************
@@ -111,7 +152,7 @@ int main(int argc, char *argv[]) {
     glm::vec2 downRight(50.0f, -50.0f);;
     int divs = 30;
     float width = (downRight[0] - upLeft[0]) / divs / 2.0f;
-    for (int i = 0; i < divs; i++) {
+    /*for (int i = 0; i < divs; i++) {
         float port = (downRight[0] - upLeft[0]) / divs;
         for (int j = 0; j < divs; j++) {
             float centerX = upLeft[0] + port * i + (float)rand() / RAND_MAX;
@@ -121,13 +162,13 @@ int main(int argc, char *argv[]) {
             t->invMass = 1.0f;
             tris.push_back(t);
         }
-    }
+    }*/
 
     //Base triangle
-    Triangle base = Triangle(glm::vec2(-60.0f, -53.0f), glm::vec2(0.0f, -120.0f), glm::vec2(60.0f, -53.0f));
+    Triangle base = Triangle(glm::vec2(-60.0f, -5.0f), glm::vec2(0.0f, -60.0f), glm::vec2(60.0f, -5.0f));
     // Inverse mass of 0 means infinite mass a.k.a. static object
     base.invMass = 0.0f;
-	std::vector<Triangle *> statics = std::vector<Triangle *>();
+	
     statics.push_back(&base);
 
     Grid gr(tris, statics, width);
@@ -142,6 +183,9 @@ int main(int argc, char *argv[]) {
 	double lastDispTime = glfwGetTime();
 	double engineTime = 0.0;
 	int numFrames = 0;
+	int totalFrames = 0;
+
+	int MAX_DEBUG_FRAMES = 1000;
 
 	do{
         //****************************************************
@@ -152,6 +196,7 @@ int main(int argc, char *argv[]) {
         oldTime = curTime;
 
         numFrames++;
+		totalFrames++;
         if ( numFrames > 9 ){
             double perEngineTime = engineTime / 10 * 1000;
             std::cout << " Engine: " << perEngineTime << "ms per frame\n";
@@ -178,6 +223,14 @@ int main(int argc, char *argv[]) {
 
         double endEngine = glfwGetTime();
         engineTime += endEngine - begEngine;
+
+		if (argv[2]) {
+			printTimestep(totalFrames, &outStream, tris);
+			if (totalFrames == MAX_DEBUG_FRAMES) {
+				outStream.close();
+				return 0;
+			}
+		}
 
         //****************************************************
         // OpenGL rendering
@@ -212,3 +265,4 @@ int main(int argc, char *argv[]) {
 
 	return 0;
 }
+

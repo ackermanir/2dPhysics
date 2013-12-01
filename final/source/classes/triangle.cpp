@@ -2,6 +2,7 @@
 
 #include <string>
 #include <iostream>
+#include <sstream>
 #include <fstream>
 #include <gtx/rotate_vector.hpp>
 
@@ -392,6 +393,12 @@ void Triangle::print(void) {
 	std::cout << verts[0][0] << " " << verts[0][1] << "\n";
 	std::cout << verts[1][0] << " " << verts[1][1] << "\n";
 	std::cout << verts[2][0] << " " << verts[2][1] << "\n";
+}
+
+std::string Triangle::coords(void) {
+	std::stringstream ss (std::stringstream::in | std::stringstream::out);
+	ss << verts[0][0] << "," << verts[0][1] << " " << verts[1][0] << "," << verts[1][1] << " " << verts[2][0] << "," << verts[2][1];
+	return ss.str();
 }
 
 Triangle::~Triangle(void) {
