@@ -6,50 +6,20 @@
 #include <fstream>
 #include <gtx/rotate_vector.hpp>
 
-
-/* Collision definitions. */
-Collision::Collision(Triangle *tr1, Triangle *tr2)
-    :cols() {
-    t1 = tr1;
-    t2 = tr2;
-}
-
-/* Reverses other collisions and adds them to this's vector of collisions. */
-void Collision::mergeReverse(Collision *other) {
-    for (std::vector<std::pair<glm::vec2, glm::vec2>>::iterator it = other->cols.begin();
-            it != other->cols.end(); ++it) {
-        it->first += it->second;
-        it->second = -it->second;
-    }
-    cols.insert(cols.end(), other->cols.begin(), other->cols.end());
-}
-
-void Collision::addCollision(glm::vec2 &point, glm::vec2 &dir) {
-    std::pair<glm::vec2, glm::vec2> col(point, dir);
-    cols.push_back(col);
-}
-
-void Collision::print() {
-	std::cout << "Collisions:\n";
-    std::cout << "    (collision pt) (spring vector)\n";
-    for (unsigned int i = 0; i < cols.size(); i++) {
-        std::pair<glm::vec2, glm::vec2> pr = cols[i];
-        std::cout << "    (" << pr.first[0] << ", " << pr.first[1] <<
-            ") (" << pr.second[0] << ", " << pr.second[1] << ")\n";
-    }
-}
-
 /* Triangle definitions. */
 Triangle::Triangle(glm::vec2 &v0, glm::vec2 &v1, glm::vec2 &v2) {
     init(v0, v1, v2);
 }
 
+//Width is the length from center to any corner
 Triangle::Triangle(glm::vec2 &center, float width) {
-    //sqrt(3)/6
-    float ratio = 0.28867513459481288225457439025098f;
-    glm::vec2 top = glm::vec2(center[0], center[1] + (1.0f - ratio) * width);
-    glm::vec2 right = glm::vec2(center[0] + width / 2.0f, center[1] - ratio * width);
-    glm::vec2 left = glm::vec2(center[0] - width / 2.0f, center[1] - ratio * width);
+    //height = 3/2 * width. Side = sqrt(3) * width
+    float sqR = 1.7320508075688772935274463415058f;
+    glm::vec2 top = glm::vec2(center[0], center[1] + width);
+    glm::vec2 left = glm::vec2(center[0] - (sqR * width / 2.0f),
+                               center[1] - (width / 2.0f));
+    glm::vec2 right = glm::vec2(center[0] + (sqR * width / 2.0f),
+                                center[1] - (width / 2.0f));
     //want counterclockwise for openGL standards
     init(top, left, right);
 }
@@ -69,17 +39,53 @@ glm::vec2 project(glm::vec2 v1, glm::vec2 v2) {
     return glm::dot(v2, glm::normalize(v1)) * glm::normalize(v1);
 }
 
+void doIt(glm::vec2* verts, int dim,
+          glm::vec2 &min, glm::vec2 &max) {
+    for (int i = 1; i < 3; i++) {
+        if (min[dim] > verts[i][dim]) {
+            min[dim] = verts[i][dim];
+        }
+        if (max[dim] < verts[i][dim]) {
+            max[dim] = verts[i][dim];
+        }
+    }
+}
+
+bool Triangle::aabbCollision(Triangle &other) {
+    glm::vec2 minA = verts[0];
+    glm::vec2 maxA = verts[0];
+    doIt(verts, 0, minA, maxA);
+    doIt(verts, 1, minA, maxA);
+    glm::vec2 minB = other.verts[0];
+    glm::vec2 maxB = other.verts[0];
+    doIt(other.verts, 0, minB, maxB);
+    doIt(other.verts, 1, minB, maxB);
+
+	//Fail fast
+	if (minA[0] > maxB[0] ||
+		minA[1] > maxB[1] ||
+		maxA[0] < minB[0] ||
+		maxA[1] < minB[1]) {
+		return false;
+	}
+	return true;
+}
+
+
 /*
-  Returns true if there is  a collision between objects using SAT collision detection.
-  If there is a collision, colVec will contain the minimal vector to resolve collision.
-  colVec is from A to B (i.e. B-A)
+  Returns true if there is a collision between objects using SAT
+  collision detection.  If there is a collision, colVec will contain
+  the minimal vector to resolve collision.  colVec is from A to B
+  (i.e. B-A). A is this, B is other.
+
   There is no information of where the collision occurs in this algo.
  */
-bool Triangle::isCollision(Triangle *triA, Triangle *triB, glm::vec2 &colVec) {
-    const glm::vec2 * ptsA = triA->verts;
-    const glm::vec2 * ptsB = triB->verts;
-    glm::vec2 midA = triA->midPt();
-    glm::vec2 midB = triB->midPt();
+bool Triangle::isCollision(Triangle &other, glm::vec2 &colVec) {
+    if (! aabbCollision(other)) { return false; }
+    const glm::vec2 * ptsA = verts;
+    const glm::vec2 * ptsB = other.verts;
+    glm::vec2 midA = midPt();
+    glm::vec2 midB = other.midPt();
     glm::vec2 norms[6];
     //All 6 norms of the triangles, first 3 are from outer triangle, last are from inner triangle
     for (int i = 0; i < 3; i++) {
@@ -184,23 +190,26 @@ void Triangle::bestEdge(glm::vec2 norm, glm::vec2 &chosenPt, glm::vec2 *edge) {
 
 // Uses clipping to determine the collision point between triangle A and B
 // given the SAT discovered minimal translation vector colVec
-bool Triangle::findCollisionPt(Triangle *triA, Triangle *triB, glm::vec2 colVec, glm::vec2 &colPt) {
-    const glm::vec2 * ptsA = triA->verts;
-    const glm::vec2 * ptsB = triB->verts;
+bool Triangle::findCollisionPt(Triangle &other,
+                               glm::vec2 colVec, glm::vec2 &colPt) {
+    const glm::vec2 * ptsA = verts;
+    const glm::vec2 * ptsB = other.verts;
     glm::vec2 colNorm = glm::normalize(colVec);
     glm::vec2 edgeA[2];
     glm::vec2 ptA;
     glm::vec2 edgeB[2];
     glm::vec2 ptB;
-    triA->bestEdge(colNorm, ptA, edgeA);
-    triB->bestEdge(-1.0f * colNorm, ptB, edgeB);
+    bestEdge(colNorm, ptA, edgeA);
+    other.bestEdge(-1.0f * colNorm, ptB, edgeB);
 
     glm::vec2 ref[2];
     glm::vec2 inc[2];
     glm::vec2 refPt;
     bool flip = false;
-    float edgeAD = glm::dot(ptA - (ptA == edgeA[0] ? edgeA[1] : edgeA[0]), colNorm);
-    float edgeBD = glm::dot(ptB - (ptB == edgeB[0] ? edgeB[1] : edgeB[0]), colNorm);
+    float edgeAD =
+        glm::dot(ptA - (ptA == edgeA[0] ? edgeA[1] : edgeA[0]), colNorm);
+    float edgeBD =
+        glm::dot(ptB - (ptB == edgeB[0] ? edgeB[1] : edgeB[0]), colNorm);
     if (edgeAD < edgeBD) {
         refPt = ptA;
         ref[0] = edgeA[0];
@@ -266,22 +275,22 @@ bool Triangle::findCollisionPt(Triangle *triA, Triangle *triB, glm::vec2 colVec,
   Returns all collisions between this triangle and other. All vectors
   are in form of other - this; i.e. apply force of spring relative to
   distance of vec2 in its direction to tail for this.
-
-  Returned Collision must be deleted!
  */
-Collision * Triangle::testColliding(Triangle *other) {
+bool Triangle::collide(Triangle &other) {
     glm::vec2 colVec;
-    if (! Triangle::isCollision(this, other, colVec)) {
-        return new Collision(this, other);
+    if (! isCollision(other, colVec)) {
+        return false;
     }
     glm::vec2 colPt;
-    if (! Triangle::findCollisionPt(this, other, colVec, colPt)) {
-        return new Collision(this, other);
+    if (! findCollisionPt(other, colVec, colPt)) {
+        return false;
     }
-    // Collision * cols = ptsColliding(this, other);
-    Collision * cols = new Collision(other, this);
-    cols->addCollision(colPt, colVec);
-    return cols;
+
+    //reverse this
+    colPt += colVec;
+    colVec = -colVec;
+    handleCollisions(other, colPt, colVec);
+    return true;
 }
 
 void capFloat(float& input, float max) {
@@ -295,32 +304,36 @@ void capFloat(float& input, float max) {
 /*
   Fixes the collision specified by col by applying force to both the triangles
   t1 and t2 according to hookes law.
+  t1 is this, t2 is other.
  */
-void Triangle::handleCollisions(Collision * col) {
+ void Triangle::handleCollisions(Triangle &other, glm::vec2 colPt,
+                                 glm::vec2 sprVec) {
     //force is sum total of forces of each spring in cols
     // This is only doing linear force
     glm::vec2 linForce(0.0f, 0.0f);
     float t1RotForce = 0.0f;
     float t2RotForce = 0.0f;
-    glm::vec2 t1Mid = col->t1->midPt();
-    glm::vec2 t2Mid = col->t2->midPt();
-    for (unsigned int i = 0; i < col->cols.size(); i++) {
-        glm::vec2 force = col->cols[i].second * HOOKE_CONSTANT;
-        linForce += force;
-        //project Force onto radius line
-        //subtract of this to get perpindicular force
-        glm::vec2 t1Radius = col->cols[i].first - t1Mid;
-        glm::vec2 t2Radius = col->cols[i].first - t2Mid;
-        glm::vec2 t1PerpForce = force - glm::dot(force, glm::normalize(t1Radius));
-        glm::vec2 t2PerpForce = force - glm::dot(force, glm::normalize(t2Radius));
 
-        //CCW checks to see what direction the rotation is in
-        // It would be great to replace with something cheaper
-        bool ccw = glm::cross(glm::vec3(t1PerpForce, 0.0f), glm::vec3(t1Radius, 0.0f)).z > 0.0f;
-        bool ccw2 = glm::cross(glm::vec3(t2PerpForce, 0.0f), glm::vec3(t2Radius, 0.0f)).z > 0.0f;
-        t1RotForce +=  (-1.0f + ccw * 2.0f) * glm::length(t1PerpForce) / glm::length(t1Radius);
-        t2RotForce +=  (-1.0f + ccw2 * 2.0f) * glm::length(t2PerpForce) / glm::length(t2Radius);
-    }
+    glm::vec2 force = sprVec * HOOKE_CONSTANT;
+    linForce += force;
+    //project Force onto radius line
+    //subtract of this to get perpindicular force
+    glm::vec2 t1Radius = colPt - midPt();
+    glm::vec2 t2Radius = colPt - other.midPt();
+    glm::vec2 t1PerpForce = force - glm::dot(force, glm::normalize(t1Radius));
+    glm::vec2 t2PerpForce = force - glm::dot(force, glm::normalize(t2Radius));
+
+    // CCW checks to see what direction the rotation is in
+    // It would be great to replace with something cheaper
+    bool ccw = glm::cross(glm::vec3(t1PerpForce, 0.0f),
+                          glm::vec3(t1Radius, 0.0f)).z > 0.0f;
+    bool ccw2 = glm::cross(glm::vec3(t2PerpForce, 0.0f),
+                           glm::vec3(t2Radius, 0.0f)).z > 0.0f;
+
+    t1RotForce +=  (-1.0f + ccw * 2.0f) * glm::length(t1PerpForce)
+        / glm::length(t1Radius);
+    t2RotForce +=  (-1.0f + ccw2 * 2.0f) * glm::length(t2PerpForce)
+        / glm::length(t2Radius);
 
     capFloat(linForce[0], 1.0f);
     capFloat(linForce[1], 1.0f);
@@ -328,11 +341,11 @@ void Triangle::handleCollisions(Collision * col) {
     capFloat(t2RotForce, 0.4f);
     //Apply force to both triangles in opposite directions
     // dv = F * 1/m
-    col->t1->velocity += linForce * col->t1->invMass;
-    col->t2->velocity -= linForce * col->t2->invMass;
-    // last multiplier is due to fact that moment of inertia isn't precise
-    col->t1->rotationalVelocity -= t1RotForce * col->t1->invMass;
-    col->t2->rotationalVelocity -= t2RotForce * col->t2->invMass;
+    velocity += linForce * invMass;
+    other.velocity -= linForce * other.invMass;
+
+    rotationalVelocity -= t1RotForce * invMass;
+    other.rotationalVelocity -= t2RotForce * other.invMass;
 }
 
 // Moves the triangle forward in time by delta applying gravity

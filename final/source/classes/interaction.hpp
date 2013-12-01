@@ -25,7 +25,7 @@ glm::mat4 projection(void) {
 		}
 	}
 	// Projection matrix : FOV, ratio, near, far
-	return glm::perspective(fov, 4.0f / 3.0f, 0.1f, 100.0f);
+	return glm::perspective(fov, 4.0f / 3.0f, 0.1f, 1000.0f);
 }
 
 #endif

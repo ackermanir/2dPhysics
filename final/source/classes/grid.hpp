@@ -22,7 +22,7 @@ public:
     float high;
     float low;
 
-    Grid(std::vector<Triangle *> trs, std::vector<Triangle *> stats, float trSize);
+    Grid(std::vector<Triangle> &trs, std::vector<Triangle> &stats, float trSize);
 
     //quickSort over all triangles
     void initialSort(void);
@@ -31,15 +31,26 @@ public:
     int partition(unsigned int left, unsigned int right, unsigned int pivot);
     void quicksort(unsigned int left, unsigned int right);
 
-    //Timestep each triangle and insertSort into order
-    void rebalance(float stepTime);
+    //Timestep over all triangles and simulate forces
+    void stepAll(float stepTime);
+    //Collide all triangles together
+    void rebalance(void);
 
-    void fixCollisions(void);
+    static void *pThreadStrip(void * input);
+    //Iterate over strips and do collisions
+    void *itterateOnStrip(int start, int size, int stride);
 
     void print(void);
 
     //Cleans up
 	~Grid(void);
 };
+
+struct PThreadInfo {
+    int size;
+    int start;
+    int stride;
+    Grid* grid;
+} ;
 
 #endif

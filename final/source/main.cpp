@@ -23,6 +23,8 @@
 #include <cstdlib> //for srand
 #include <omp.h>
 
+#include "pthread.h"
+
 using namespace std;
 
 //Header for helpers
@@ -33,11 +35,11 @@ using namespace std;
 #include "grid.hpp"
 
 // Funtion that prints to stdout or a file the state at each timestep
-int printTimestep(int framenum, ofstream * myfile, std::vector<Triangle *> tris) {
+int printTimestep(int framenum, ofstream * myfile, std::vector<Triangle> tris) {
 	std::stringstream ss (std::stringstream::in | std::stringstream::out);
 	ss << framenum;
 	for (int i = 0; i < tris.size(); i++) {
-        ss << "\t" << tris[i]->coords();
+        ss << "\t" << tris[i].coords();
     }
 	ss << "\n";
 	*myfile << ss.str();
@@ -51,17 +53,16 @@ int main(int argc, char *argv[]) {
 
 	ofstream outStream;
 	// if debugging output file is present
-	if (argv[2]) {
+	if (argc > 1) {
 		outStream.open(argv[2]);
 	}
 
 	//collection of triangles in scene
-	std::vector<Triangle *> tris = std::vector<Triangle *>();
-	std::vector<Triangle *> statics = std::vector<Triangle *>();
+	std::vector<Triangle> tris = std::vector<Triangle>();
 	//Location of camera in the scene
-	glm::vec3 camLoc(0.0f, 0.0f, 99.0f);
+	glm::vec3 camLoc(0.0f, -250.0f, 750.0f);
     //Camera view matrix
-    glm::mat4 view = glm::lookAt(camLoc, glm::vec3(0,0,0), glm::vec3(0,1,0));
+    glm::mat4 view = glm::lookAt(camLoc, glm::vec3(0,-250.0f,0), glm::vec3(0,1,0));
 
 	// Initialise GLFW
 	if(!glfwInit()) {
@@ -113,65 +114,55 @@ int main(int argc, char *argv[]) {
 	//****************************************************
 	// Read in the input file and create orresponding triangles
 	//****************************************************
-	ifstream fin;
-	fin.open(argv[1]);
-	if (!fin.good())
-		return 1;
+    if (argc > 1) {
+        ifstream fin;
+        fin.open(argv[1]);
+        if (!fin.good())
+            return 1;
 
-	while (!fin.eof())
-	{
-		char buf[512];
-		fin.getline(buf, 512);
-		float x = ::atof(strtok(buf, " "));
-		float y = ::atof(strtok(0, " "));
-		glm::vec2 center = glm::vec2(x, y);
-		float width = ::atof(strtok(0, " "));
-		Triangle *t = new Triangle(center, width);
-		t->invMass = 1.0f;
-		tris.push_back(t);
-	}
+        while (!fin.eof())
+            {
+                char buf[512];
+                fin.getline(buf, 512);
+                float x = ::atof(strtok(buf, " "));
+                float y = ::atof(strtok(0, " "));
+                glm::vec2 center = glm::vec2(x, y);
+                float width = ::atof(strtok(0, " "));
+                Triangle t = Triangle(center, width);
+                t.invMass = 1.0f;
+                tris.push_back(t);
+            }
+    }
 
 	//****************************************************
 	// Load in objects to world
 	//****************************************************
 
-    //Testing line collision code
-
-    // Triangle *t = new Triangle(glm::vec2(.2,5), 5.0);
-    // t->invMass = 0.0f;
-    // tris.push_back(t);
-    // Triangle *t2 = new Triangle(glm::vec2(0,11), 5.0);
-    // t2->invMass = 1.0f;
-    // tris.push_back(t2);
-    // Triangle base = Triangle(glm::vec2(-60.0f, -0.0f), glm::vec2(0.0f, -120.0f), glm::vec2(60.0f, -0.0f));
-
-    //Testing line collision code
-
     srand(6);
-    glm::vec2 upLeft(-50.0f, 50.0f);
-    glm::vec2 downRight(50.0f, -50.0f);;
-    int divs = 30;
-    float width = (downRight[0] - upLeft[0]) / divs / 2.0f;
-    /*for (int i = 0; i < divs; i++) {
+    glm::vec2 upLeft(-500.0f, 500.0f);
+    glm::vec2 downRight(500.0f, -500.0f);
+    int divs = 80;
+    float width = (downRight[0] - upLeft[0]) / divs / 3.0f;
+    for (int i = 0; i < divs; i++) {
         float port = (downRight[0] - upLeft[0]) / divs;
         for (int j = 0; j < divs; j++) {
             float centerX = upLeft[0] + port * i + (float)rand() / RAND_MAX;
             float centerY = downRight[1] + port * j + (float)rand() / RAND_MAX;
             glm::vec2 center(centerX, centerY);
-            Triangle *t = new Triangle(center, width);
-            t->invMass = 1.0f;
+            Triangle t = Triangle(center, width);
+            t.invMass = 1.0f;
             tris.push_back(t);
         }
-    }*/
+    }
 
     //Base triangle
-    Triangle base = Triangle(glm::vec2(-60.0f, -5.0f), glm::vec2(0.0f, -60.0f), glm::vec2(60.0f, -5.0f));
+    Triangle base = Triangle(glm::vec2(-600.0f, -530.0f), glm::vec2(0.0f, -1200.0f), glm::vec2(600.0f, -530.0f));
     // Inverse mass of 0 means infinite mass a.k.a. static object
     base.invMass = 0.0f;
-	
-    statics.push_back(&base);
+	std::vector<Triangle> statics = std::vector<Triangle>();
+    statics.push_back(base);
 
-    Grid gr(tris, statics, width);
+    Grid gr(tris, statics, width * 2.0f);
 
 	//****************************************************
 	// Setup uniforms
@@ -179,9 +170,8 @@ int main(int argc, char *argv[]) {
 	GLuint mvpId = glGetUniformLocation(programID, "mvpMat");
 
 	//time keeping
-	double oldTime = glfwGetTime();
-	double lastDispTime = glfwGetTime();
 	double engineTime = 0.0;
+	double midEngineTime = 0.0;
 	int numFrames = 0;
 	int totalFrames = 0;
 
@@ -191,30 +181,32 @@ int main(int argc, char *argv[]) {
         //****************************************************
         // FPS / time calculations
         //****************************************************
-        double curTime = glfwGetTime();
-        float deltaTime = (float)(curTime - oldTime);
-        oldTime = curTime;
-
         numFrames++;
 		totalFrames++;
         if ( numFrames > 9 ){
             double perEngineTime = engineTime / 10 * 1000;
+            double midEng = midEngineTime / engineTime * 100;
             std::cout << " Engine: " << perEngineTime << "ms per frame\n";
+            std::cout << " Collis: " << midEng << "% per frame\n\n";
             engineTime = 0.0;
+            midEngineTime = 0.0;
             numFrames = 0;
-            lastDispTime = curTime;
         }
         //****************************************************
         // Physics engine
         //****************************************************
         double begEngine = glfwGetTime();
+        double midEngine;
 
         //Simulation/collision
         // messy/bad at 0.001f with 900
         // ok at 0.0005f; up to 900
         float stepTime = 0.0005f;
-        for (int i = 0; i < 5; i++) {
-            gr.rebalance(stepTime);
+        for (int i = 0; i < 10; i++) {
+            gr.stepAll(stepTime);
+            gr.initialSort();
+            midEngine = glfwGetTime(); //timestamp again to see collisions
+            gr.rebalance();
         }
 
         // Change fov, allowing user to move
@@ -223,8 +215,9 @@ int main(int argc, char *argv[]) {
 
         double endEngine = glfwGetTime();
         engineTime += endEngine - begEngine;
+        midEngineTime += endEngine - midEngine;
 
-		if (argv[2]) {
+		if (argc > 1) {
 			printTimestep(totalFrames, &outStream, tris);
 			if (totalFrames == MAX_DEBUG_FRAMES) {
 				outStream.close();
@@ -246,11 +239,11 @@ int main(int argc, char *argv[]) {
 
         //Go over each Triangle and have them draw themselves
         for (unsigned int i = 0; i < tris.size(); i++) {
-            tris[i]->drawSelf();
+            tris[i].drawSelf();
         }
 
         for (unsigned int i = 0; i < statics.size(); i++) {
-            statics[i]->drawSelf();
+            statics[i].drawSelf();
         }
 
         // Swap buffers
