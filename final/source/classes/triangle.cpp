@@ -336,8 +336,8 @@ void capFloat(float& input, float max) {
 
     capFloat(linForce[0], 1.0f);
     capFloat(linForce[1], 1.0f);
-    capFloat(t1RotForce, 0.4f);
-    capFloat(t2RotForce, 0.4f);
+    capFloat(t1RotForce, 0.04f);
+    capFloat(t2RotForce, 0.04f);
     //Apply force to both triangles in opposite directions
     // dv = F * 1/m
     velocity += linForce * invMass;
@@ -409,4 +409,20 @@ void Triangle::print(void) {
 
 Triangle::~Triangle(void) {
 	glDeleteBuffers(1, &vertexBuf);
+}
+
+Tri_g createTriG(Triangle &t) {
+    Tri_g gt;
+    for (int i = 0; i < 3; i++) {
+        float * v = (float*)&gt.verts[i];
+        v[0] = t.verts[i][0];
+        v[1] = t.verts[i][1];
+    }
+    float *v = (float*)&gt.velocity;
+    v[0] = t.velocity[0];
+    v[1] = t.velocity[1];
+    gt.rot_vel = t.rotationalVelocity;
+    gt.inv_mass = t.invMass;
+    gt.vert_buf = t.vertexBuf;
+    return gt;
 }

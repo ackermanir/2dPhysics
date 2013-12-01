@@ -15,14 +15,16 @@
 #include <string>
 #include <algorithm>
 #include <vector>
+#include <list>
 #include <iostream>
 #include <fstream>
 #include <cmath>
 #include <time.h>
 #include <math.h>
 #include <cstdlib> //for srand
-#include <omp.h>
 
+#include <omp.h>
+#include <CL/cl.h>
 #include "pthread.h"
 
 using namespace std;
@@ -30,6 +32,8 @@ using namespace std;
 //Header for helpers
 #include "shaderLoad.hpp"
 #include "interaction.hpp"
+#include "clinter.hpp"
+#include "clhelp.h"
 
 #include "triangle.hpp"
 #include "grid.hpp"
@@ -41,6 +45,7 @@ int main(int argc, char *argv[]) {
 
 	//collection of triangles in scene
 	std::vector<Triangle> tris = std::vector<Triangle>();
+	std::vector<Tri_g> trisG = std::vector<Tri_g>();
 	//Location of camera in the scene
 	glm::vec3 camLoc(0.0f, -250.0f, 750.0f);
     //Camera view matrix
@@ -99,7 +104,7 @@ int main(int argc, char *argv[]) {
     srand(6);
     glm::vec2 upLeft(-500.0f, 500.0f);
     glm::vec2 downRight(500.0f, -500.0f);
-    int divs = 80;
+    int divs = 12;
     float width = (downRight[0] - upLeft[0]) / divs / 3.0f;
     for (int i = 0; i < divs; i++) {
         float port = (downRight[0] - upLeft[0]) / divs;
@@ -110,6 +115,7 @@ int main(int argc, char *argv[]) {
             Triangle t = Triangle(center, width);
             t.invMass = 1.0f;
             tris.push_back(t);
+            trisG.push_back(createTriG(t));
         }
     }
 
@@ -119,8 +125,16 @@ int main(int argc, char *argv[]) {
     base.invMass = 0.0f;
 	std::vector<Triangle> statics = std::vector<Triangle>();
     statics.push_back(base);
+	std::vector<Tri_g> staticsG = std::vector<Tri_g>();
+    staticsG.push_back(createTriG(base));
 
     Grid gr(tris, statics, width * 2.0f);
+
+    //****************************************************
+	// Setup OpenCL
+	//****************************************************
+    ClInter cli(trisG, staticsG);
+    cli.setup();
 
 	//****************************************************
 	// Setup uniforms
@@ -137,8 +151,8 @@ int main(int argc, char *argv[]) {
         // FPS / time calculations
         //****************************************************
         numFrames++;
-        if ( numFrames > 10 ){
-            double perEngineTime = engineTime / 10 * 1000;
+        if ( numFrames > 0 ){
+            double perEngineTime = engineTime * 1000;
             double midEng = midEngineTime / engineTime * 100;
             std::cout << " Engine: " << perEngineTime << "ms per frame\n";
             std::cout << " Collis: " << midEng << "% per frame\n\n";
@@ -152,14 +166,24 @@ int main(int argc, char *argv[]) {
         double begEngine = glfwGetTime();
         double midEngine;
 
-        //Simulation/collision
-        // messy/bad at 0.001f with 900
-        // ok at 0.0005f; up to 900
         float stepTime = 0.0005f;
-        for (int i = 0; i < 10; i++) {
+
+        //****************************************************
+        // OpenCL
+        //****************************************************
+
+        cli.simulate(stepTime);
+
+        //****************************************************
+        // CPU
+        //****************************************************
+
+        midEngine = glfwGetTime(); //gpu done, see time
+
+        //Simulation/collision
+        for (int i = 0; i < 1; i++) {
             gr.stepAll(stepTime);
             gr.initialSort();
-            midEngine = glfwGetTime(); //timestamp again to see collisions
             gr.rebalance();
         }
 

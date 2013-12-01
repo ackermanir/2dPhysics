@@ -191,7 +191,7 @@ void *Grid::itterateOnStrip(int start, int size, int stride) {
 
 // Simulate all triangles falling
 void Grid::stepAll(float stepTime) {
-    for (unsigned int i = 0; i < tris.size(); i++) {
+    for (int i = 0; i < tris.size(); i++) {
         tris[i]->timeStep(stepTime);
     }
 }
@@ -220,7 +220,6 @@ void Grid::rebalance() {
         return;
     }
 
-    // single thread version
     itterateOnStrip(0, indices.size(), 2);
     itterateOnStrip(1, indices.size() - 1, 2);
 
@@ -297,18 +296,15 @@ Grid::~Grid(void) {
 // To Try: midpiont being part of triangle so we don't
 // have to continually calculate
 
-
 /// Let's plan for the GPU
 
 // Timestepping:
 //     Trivial, simply do it to each of the triangles, 1 per work unit
 
 // Sorting:
-//     have 2x (or 3x) size to write to.
-//     2x: sort self, write back to self. Write extra to extra slots
-//
-//     Next times: take in extra slots
-//     write out to bool true if 
+//     sort self
+//     if swapping occured, move half a dimension up/down and resort
+//     do this until no work group swaps
 
 // Collisions:
 //     Group for collisions in 2 wide strip. Do collisions in group of size n, grab additional
