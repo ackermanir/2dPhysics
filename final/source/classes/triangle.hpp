@@ -2,11 +2,12 @@
 #define __TRIANGLE_H
 
 //OpenGL headers
-#include <GL/glew.h>
-#include <GL/glfw.h>
-#include <glm.hpp>
+
 #include <algorithm>
 #include <vector>
+
+#include <GL/glew.h>
+#include <glm.hpp>
 
 #define HOOKE_CONSTANT 10.0f
 
@@ -14,6 +15,7 @@ class Collision;
 
 class Triangle {
 public:
+    
     //Triangle vertices
     glm::vec2 verts[3];
 	//Physics info
@@ -24,10 +26,10 @@ public:
 	GLuint vertexBuf;
 
     //Create triangle with these 3 points
-    Triangle(glm::vec2 &v0, glm::vec2 &v1, glm::vec2 &v2);
+    Triangle(glm::vec2 v0, glm::vec2 v1, glm::vec2 v2);
     //Equilateral triangle construct
-    Triangle(glm::vec2 &center, float width);
-    void init(glm::vec2 &v0, glm::vec2 &v1, glm::vec2 &v2);
+    Triangle(glm::vec2 center, float width);
+    void init(glm::vec2 v0, glm::vec2 v1, glm::vec2 v2);
 
     ///
     // Collision code

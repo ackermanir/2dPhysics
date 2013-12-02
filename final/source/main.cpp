@@ -1,16 +1,22 @@
 #include <stdio.h>
 #include <stdlib.h>
 
+#ifdef _WIN32
 #include <windows.h>
+#include <glfw.h>
+//GLM matrices
+#include <gtc/matrix_transform.hpp>
+#include <gtx/transform.hpp>
+
+#include "shaderLoad.hpp"
+#else
+#include <sys/time.h>
+#endif
 
 //OpenGL headers
 #include <GL/glew.h>
-#include <GL/glfw.h>
 #include <glm.hpp>
 
-//GLM matrices
-#include <gtx/transform.hpp>
-#include <gtc/matrix_transform.hpp>
 
 #include <string>
 #include <algorithm>
@@ -28,30 +34,34 @@
 using namespace std;
 
 //Header for helpers
-#include "shaderLoad.hpp"
-#include "interaction.hpp"
 
-#include "triangle.hpp"
-#include "grid.hpp"
+#include "classes/interaction.hpp"
 
+#include "classes/triangle.hpp"
+#include "classes/grid.hpp"
+
+
+//TODO: replace it with unix-friendly timer
+#define glfwGetTime() 0
 //****************************************************
 // Main loop
 //****************************************************
 int main(int argc, char *argv[]) {
-
+	
 	//collection of triangles in scene
 	std::vector<Triangle> tris = std::vector<Triangle>();
+    #ifdef _WIN32
 	//Location of camera in the scene
 	glm::vec3 camLoc(0.0f, -250.0f, 750.0f);
     //Camera view matrix
     glm::mat4 view = glm::lookAt(camLoc, glm::vec3(0,-250.0f,0), glm::vec3(0,1,0));
-
+	
 	// Initialise GLFW
 	if(!glfwInit()) {
 		fprintf( stderr, "Failed to initialize GLFW\n" );
 		return -1;
 	}
-
+	
 	glfwOpenWindowHint(GLFW_FSAA_SAMPLES, 4);
 	glfwOpenWindowHint(GLFW_OPENGL_VERSION_MAJOR, 3);
 	glfwOpenWindowHint(GLFW_OPENGL_VERSION_MINOR, 3);
@@ -89,17 +99,19 @@ int main(int argc, char *argv[]) {
 	//****************************************************
 	// Setup shader and textures
 	//****************************************************
+	
 	GLuint programID = LoadShaders( "shaders/simple.vert.glsl",
 									"shaders/simple.frag.glsl");
 
 	//****************************************************
 	// Load in objects to world
 	//****************************************************
-
+    #endif
+    
     srand(6);
     glm::vec2 upLeft(-500.0f, 500.0f);
     glm::vec2 downRight(500.0f, -500.0f);
-    int divs = 80;
+    int divs = 3;
     float width = (downRight[0] - upLeft[0]) / divs / 3.0f;
     for (int i = 0; i < divs; i++) {
         float port = (downRight[0] - upLeft[0]) / divs;
@@ -125,8 +137,10 @@ int main(int argc, char *argv[]) {
 	//****************************************************
 	// Setup uniforms
 	//****************************************************
+    #ifdef _WIN32
 	GLuint mvpId = glGetUniformLocation(programID, "mvpMat");
-
+    #endif
+    
 	//time keeping
 	double engineTime = 0.0;
 	double midEngineTime = 0.0;
@@ -165,12 +179,15 @@ int main(int argc, char *argv[]) {
 
         // Change fov, allowing user to move
         // Use - or 0 keys
+        #ifdef _WIN32
         glm::mat4 proj = projection();
-
+        #endif
+        
         double endEngine = glfwGetTime();
         engineTime += endEngine - begEngine;
         midEngineTime += endEngine - midEngine;
 
+        #ifdef _WIN32
         //****************************************************
         // OpenGL rendering
         //****************************************************
@@ -194,13 +211,17 @@ int main(int argc, char *argv[]) {
 
         // Swap buffers
         glfwSwapBuffers();
-
+        #endif
+        
 	} // Check if the ESC key was pressed or the window was closed
+    #ifdef _WIN32
 	while( glfwGetKey(GLFW_KEY_ESC) != GLFW_PRESS &&
 		   glfwGetWindowParam(GLFW_OPENED));
-
+           
 	glfwTerminate(); // Close OpenGL window and terminate GLFW
 	glDeleteVertexArrays(1, &VertexArrayID); // Cleanup VBO
-
+    #else
+    while(true);
+    #endif
 	return 0;
 }

@@ -1,12 +1,13 @@
 #ifndef __INTERACTION_H
 #define __INTERACTION_H
 
-#include <glm.hpp>
 #include <cmath>
 
-#include <glm.hpp>
+#ifdef _WIN32
 #include <gtx/transform.hpp>
 #include <gtc/matrix_transform.hpp>
+
+#include <glm.hpp>
 
 //GLFW_KEY_KP_SUBTRACT
 // or GLFW_KEY_KP_ADD
@@ -28,4 +29,5 @@ glm::mat4 projection(void) {
 	return glm::perspective(fov, 4.0f / 3.0f, 0.1f, 1000.0f);
 }
 
+#endif
 #endif

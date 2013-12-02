@@ -2,7 +2,10 @@
 #define __GRID_H
 
 #include <vector>
+
+#ifdef _WIN32
 #include <glm.hpp>
+#endif
 
 #include "triangle.hpp"
 

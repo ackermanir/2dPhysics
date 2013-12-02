@@ -6,12 +6,12 @@
 #include <gtx/rotate_vector.hpp>
 
 /* Triangle definitions. */
-Triangle::Triangle(glm::vec2 &v0, glm::vec2 &v1, glm::vec2 &v2) {
+Triangle::Triangle(glm::vec2 v0, glm::vec2 v1, glm::vec2 v2) {
     init(v0, v1, v2);
 }
 
 //Width is the length from center to any corner
-Triangle::Triangle(glm::vec2 &center, float width) {
+Triangle::Triangle(glm::vec2 center, float width) {
     //height = 3/2 * width. Side = sqrt(3) * width
     float sqR = 1.7320508075688772935274463415058f;
     glm::vec2 top = glm::vec2(center[0], center[1] + width);
@@ -23,7 +23,7 @@ Triangle::Triangle(glm::vec2 &center, float width) {
     init(top, left, right);
 }
 
-void Triangle::init(glm::vec2 &v0, glm::vec2 &v1, glm::vec2 &v2) {
+void Triangle::init(glm::vec2 v0, glm::vec2 v1, glm::vec2 v2) {
     verts[0] = v0;
     verts[1] = v1;
     verts[2] = v2;
@@ -396,7 +396,6 @@ void Triangle::drawSelf(void) {
 	glVertexAttribPointer(0, 2, GL_FLOAT, GL_FALSE, 0,(void*)0);
 
     glDrawArrays(GL_TRIANGLES, 0, 3);
-
 	glDisableVertexAttribArray(0);
 }
 
@@ -408,5 +407,5 @@ void Triangle::print(void) {
 }
 
 Triangle::~Triangle(void) {
-	glDeleteBuffers(1, &vertexBuf);
+	//glDeleteBuffers(1, &vertexBuf);
 }
