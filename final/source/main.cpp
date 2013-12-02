@@ -42,7 +42,12 @@ using namespace std;
 
 
 //TODO: replace it with unix-friendly timer
-#define glfwGetTime() 0
+double timestamp(){
+	struct timeval tv;
+	gettimeofday (&tv, 0);
+	return tv.tv_sec + 1e-6*tv.tv_usec;
+}
+#define glfwGetTime() timestamp()
 //****************************************************
 // Main loop
 //****************************************************
@@ -111,7 +116,7 @@ int main(int argc, char *argv[]) {
     srand(6);
     glm::vec2 upLeft(-500.0f, 500.0f);
     glm::vec2 downRight(500.0f, -500.0f);
-    int divs = 3;
+    int divs = 80;
     float width = (downRight[0] - upLeft[0]) / divs / 3.0f;
     for (int i = 0; i < divs; i++) {
         float port = (downRight[0] - upLeft[0]) / divs;
@@ -152,7 +157,7 @@ int main(int argc, char *argv[]) {
         //****************************************************
         numFrames++;
         if ( numFrames > 10 ){
-            double perEngineTime = engineTime / 10 * 1000;
+            double perEngineTime = engineTime * 1000;
             double midEng = midEngineTime / engineTime * 100;
             std::cout << " Engine: " << perEngineTime << "ms per frame\n";
             std::cout << " Collis: " << midEng << "% per frame\n\n";
@@ -170,7 +175,7 @@ int main(int argc, char *argv[]) {
         // messy/bad at 0.001f with 900
         // ok at 0.0005f; up to 900
         float stepTime = 0.0005f;
-        for (int i = 0; i < 10; i++) {
+        for (int i = 0; i < 1; i++) {
             gr.stepAll(stepTime);
             gr.initialSort();
             midEngine = glfwGetTime(); //timestamp again to see collisions

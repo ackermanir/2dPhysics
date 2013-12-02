@@ -117,7 +117,7 @@ void *Grid::pThreadStrip(void * input) {
 }
 
 void *Grid::itterateOnStrip(int start, int size, int stride) {
-#pragma omp parallel for ordered schedule(dynamic) num_threads(8)
+#pragma omp parallel for ordered schedule(dynamic) num_threads(16)
     for (int i = start; i < start + size; i += stride) {
         //Iterate over each row strip
         unsigned int off = indices[i];

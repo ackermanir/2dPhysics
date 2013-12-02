@@ -373,15 +373,16 @@ glm::vec2 Triangle::midPt(void) {
     return mid;
 }
 
-
 // Setup the VBO for this triangle
 void Triangle::glArraySetup(void) {
+	#ifdef _WIN32
 	//Setup vertex buffer
 	glGenBuffers(1, &vertexBuf);
 	glBindBuffer(GL_ARRAY_BUFFER, vertexBuf);
 	glBufferData(GL_ARRAY_BUFFER, sizeof(verts), verts, GL_DYNAMIC_DRAW);
+	#endif
 }
-
+#ifdef _WIN32
 // Update the VBO with the current position of verts
 void Triangle::glRedoVBO(void) {
 	glBindBuffer(GL_ARRAY_BUFFER, vertexBuf);
@@ -398,7 +399,7 @@ void Triangle::drawSelf(void) {
     glDrawArrays(GL_TRIANGLES, 0, 3);
 	glDisableVertexAttribArray(0);
 }
-
+#endif
 void Triangle::print(void) {
 	std::cout << "Triangle:\n";
 	std::cout << verts[0][0] << " " << verts[0][1] << "\n";

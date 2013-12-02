@@ -52,8 +52,10 @@ public:
     glm::vec2 midPt(void);
     // OpenGL functions
 	void glArraySetup(void);
+	#ifdef _WIN32
 	void glRedoVBO(void);
 	void drawSelf();
+	#endif
     // Debug print
 	void print(void);
     //Cleans up opengl buffer
