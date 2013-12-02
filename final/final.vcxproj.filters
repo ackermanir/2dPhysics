@@ -24,6 +24,9 @@
     <ClCompile Include="source\classes\grid.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="vec2d.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="source\classes\fileParse.hpp">
@@ -39,6 +42,9 @@
       <Filter>Source Files</Filter>
     </ClInclude>
     <ClInclude Include="source\classes\grid.hpp">
+      <Filter>Source Files</Filter>
+    </ClInclude>
+    <ClInclude Include="vec2d.hpp">
       <Filter>Source Files</Filter>
     </ClInclude>
   </ItemGroup>
