@@ -54,6 +54,8 @@ public:
 	void drawSelf();
     // Debug print
 	void print(void);
+	// Return a string of the oordinates
+    std::string coords(void);
     //Cleans up opengl buffer
 	~Triangle(void);
 };

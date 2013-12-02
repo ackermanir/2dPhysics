@@ -3,6 +3,7 @@
 #include <string>
 #include <iostream>
 #include <fstream>
+#include <sstream>
 #include <gtx/rotate_vector.hpp>
 
 /* Triangle definitions. */
@@ -407,6 +408,12 @@ void Triangle::print(void) {
 	std::cout << verts[2][0] << " " << verts[2][1] << "\n";
 }
 
+std::string Triangle::coords(void) {
+        std::stringstream ss (std::stringstream::in | std::stringstream::out);
+        ss << verts[0][0] << "," << verts[0][1] << " " << verts[1][0] << "," << verts[1][1] << " " << verts[2][0] << "," << verts[2][1];
+        return ss.str();
+}
+
 Triangle::~Triangle(void) {
-	glDeleteBuffers(1, &vertexBuf);
+	//glDeleteBuffers(1, &vertexBuf);
 }
