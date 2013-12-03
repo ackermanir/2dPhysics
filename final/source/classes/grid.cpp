@@ -12,6 +12,8 @@
 #define LINEAR 0
 #define NUMTHREADS 1
 
+extern int numThreads;
+
 /* Copy over inputs. Call initialSort */
 Grid::Grid(std::vector<Triangle> &trs, std::vector<Triangle> &stats, float trSize) {
     tris = std::vector<Triangle *>();
@@ -117,7 +119,8 @@ void *Grid::pThreadStrip(void * input) {
 }
 
 void *Grid::itterateOnStrip(int start, int size, int stride) {
-#pragma omp parallel for ordered schedule(dynamic) num_threads(16)
+	omp_set_num_threads(numThreads);
+#pragma omp parallel for ordered schedule(dynamic)
     for (int i = start; i < start + size; i += stride) {
         //Iterate over each row strip
         unsigned int off = indices[i];

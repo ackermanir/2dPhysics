@@ -40,7 +40,8 @@ using namespace std;
 #include "classes/triangle.hpp"
 #include "classes/grid.hpp"
 
-
+int numThreads = 1;
+int divs = 80;
 //TODO: replace it with unix-friendly timer
 double timestamp(){
 	struct timeval tv;
@@ -52,6 +53,12 @@ double timestamp(){
 // Main loop
 //****************************************************
 int main(int argc, char *argv[]) {
+	if (argc >= 3){
+		numThreads = atoi(argv[1]);
+		divs = atoi(argv[2]);
+	} else { printf("Usage: ./as4 <numThreads> <divs>\nExample: ./as4 4 200\n\n"); }
+	printf("numThreads: %d,  divs: %d\n",numThreads,divs);
+	// std::cout << std::endl;
 	
 	//collection of triangles in scene
 	std::vector<Triangle> tris = std::vector<Triangle>();
@@ -116,7 +123,7 @@ int main(int argc, char *argv[]) {
     srand(6);
     glm::vec2 upLeft(-500.0f, 500.0f);
     glm::vec2 downRight(500.0f, -500.0f);
-    int divs = 80;
+    // int divs = 400;
     float width = (downRight[0] - upLeft[0]) / divs / 3.0f;
     for (int i = 0; i < divs; i++) {
         float port = (downRight[0] - upLeft[0]) / divs;
